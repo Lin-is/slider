@@ -1,16 +1,14 @@
 import './index.css';
-
-
 "use strict";
 
 function createElement (tag, className, id) {
-    if (!tag) {
+    if (!tag || !className) {
       return;
     }
+
     let newElem = document.createElement(tag);
-    if (className){
-      newElem.className = className;
-    }    
+    newElem.className = className; 
+
     if (id) {
       newElem.id = className + '-' + id;
     }
@@ -45,38 +43,38 @@ function addNewSlider (id, min, max, sliderParent = document.body) {
 
 function addSliderWithControl (id, min, max) {
 
-  let controlContainer = createElement("div", "slider__control-container", id);
+  let controlContainer = createElement("div", "slider__controlContainer", id);
   document.body.append(controlContainer);
 
-  let controlElements = createElement("div", "slider__control-elements", id);
+  let controlElements = createElement("div", "slider__controlElements", id);
 
-
-  let valueCheckbox = createElement("input", "slider__value-checkbox", id);
+  let valueCheckbox = createElement("input", "slider__valueCheckbox", id);
   valueCheckbox.type = "checkbox";
-  let checkboxLabel = createElement("label", "slider__value-checkbox-label", id);
+  let checkboxLabel = createElement("label", "slider__valueCheckboxLabel", id);
   checkboxLabel.for = valueCheckbox.id;
   checkboxLabel.setAttribute('for', '' + valueCheckbox.id);
   checkboxLabel.innerHTML = "Показать значение над ползунком";
 
+  let addHandleButton = createElement("button", "slider__addHandleButton", id);
+  addHandleButton.type = "button";
+  addHandleButton.innerHTML = "+";
 
-  let buttonAddHandle = createElement("button", "slider__button-add-handle", id);
-  buttonAddHandle.type = "button";
-  buttonAddHandle.innerHTML = "+";
+  let handleControlContainer = createElement("div", "slider__handleCotrolContainer", id);
+
 
   $('#' + controlContainer.id).append(controlElements);
   $('#' + controlElements.id).append(valueCheckbox);
   $('#' + controlElements.id).append(checkboxLabel);
-  $('#' + controlElements.id).append(buttonAddHandle);
+  $('#' + controlElements.id).append(addHandleButton);
+  $('#' + controlElements.id).append(handleControlContainer);
 
-  let buttonId = "#" + buttonAddHandle.id;
-  console.log(buttonId);
+
+  let buttonId = "#" + addHandleButton.id;
   let but = document.querySelector(buttonId);
-  console.log(but);
 
   addNewSlider(id, min, max, controlContainer);
 
   but.onclick = function () {
-    console.log("FFFFFFFFFF");
     addSliderHandle(id, max);
   };
 
@@ -84,28 +82,65 @@ function addSliderWithControl (id, min, max) {
 
 function addSliderHandle (id, max) {
 
-  //! не меняется номер рукоятки в id (postfix)
-
   let sliderScaleId = "#slider__scale-" + id;
-  let handleLabelNumber = $(sliderScaleId).children('.slider__handleLabel').length;
+  let handleLabelNumber = document.querySelector(sliderScaleId).children.length;
   let handleIdPostfix = id + "-" + ++handleLabelNumber;
-  console.log(handleIdPostfix);
   let sliderHandle = createElement("div", "slider__handle", handleIdPostfix);
   let sliderHandleLabel = createElement("div", "slider__handleLabel", handleIdPostfix);
 
   $(sliderScaleId).append(sliderHandle);
   $('#' + sliderHandle.id).append(sliderHandleLabel);
-  $('#' + sliderHandleLabel.id).addClass("hidden");
+  startValueHint(sliderHandleLabel.id);
 
   document.querySelector("#" + sliderHandleLabel.id).innerHTML = max/2;
   letHandleRun();
-
+  addHandleControl(sliderHandleLabel.id);
 };
 
+function addHandleControl (handleId) {
+  let [ , idNumber, postfix] = handleId.split("-");
+  let idPostfix = idNumber + '-' + postfix;
+
+  let containerId = "#slider__handleCotrolContainer-" + idNumber;
+  let container = document.querySelector(containerId);
+
+  let handleControl = createElement("div", "slider__handleControl", idPostfix);
+  let handleControlId = "#" + handleControl.id;
+
+  $("#" + container.id).append(handleControl);
+
+  let handleValueFieldLabel = createElement("lable", "slider__handleValueFieldLabel", idPostfix);
+  handleValueFieldLabel.innerHTML = postfix + ": ";
+
+  let handleValueField = createElement("input", "slider__handleValueField", idPostfix);
+  handleValueField.type = "text";
+  
+  handleValueFieldLabel.setAttribute('for', '' + handleValueField.id);
+
+  $("#" + handleControl.id).append(handleValueFieldLabel);
+  $("#" + handleControl.id).append(handleValueField);
+
+  if (postfix > 1)  {
+
+    let deleteHandleButton = createElement("button", "slider__deleteHandleButton", idPostfix);
+    deleteHandleButton.type = "button";
+    deleteHandleButton.innerHTML = "-";
+
+    $("#" + handleControl.id).append(deleteHandleButton);
+
+    let buttonId = "#" + deleteHandleButton.id;
+    let but = document.querySelector(buttonId);
+  
+    but.onclick = function () {
+      let [ , idNumberBut, postfixBut] = but.id.split("-");
+      deleteSliderHandle(idNumberBut, postfixBut);
+    };
+  }
+};
+
+
 function letHandleRun () {
-
   for (let i = 0; i < sliders.length; i++) {
-
     let [ , id] = sliders[i].id.split('-');
     let sliderId = '#slider__scale-' + id;
 
@@ -125,7 +160,6 @@ function letHandleRun () {
   };
 };
 
-
 addSliderWithControl(5, 0, 100);
 addSliderWithControl(6, 0, 124);
 
@@ -142,16 +176,86 @@ function toggleValueHint(idArr, classCheckbox, classHint) {
       for (let handle of allHandles) {
         let [ , handleIdNum, idPostfix] = handle.id.split('-');
         let handleLabelId = '#slider__handleLabel-' + handleIdNum + '-' + idPostfix;
-        $(handleLabelId).toggleClass("hidden"); 
+        if (check.checked) {
+          $(handleLabelId).removeClass("hidden"); 
+        } else {
+          $(handleLabelId).addClass("hidden"); 
+        }
       }
-
     };
 
   });
-
 };
 
-toggleValueHint(sliders, "slider__value-checkbox", "slider__handleLabel");
+function deleteSliderHandle(idNumber, postfix) {
+  let idPostfix = idNumber + "-" + postfix;
+  let sliderControlId = "#slider__handleControl-" + idPostfix;
+  let handleId = "#slider__handle-" + idPostfix;
+
+  let sliderScaleId = "#slider__scale-" + idNumber;
+
+  document.querySelector(sliderControlId).remove();
+  document.querySelector(handleId).remove();
+
+  if (postfix < document.querySelector(sliderScaleId).children.length + 1){
+    changePostfixes( 'slider__handle', postfix);
+    changePostfixes( 'slider__handleControl', postfix);
+  }
+};
+
+function changePostfixes(className, deletedPostfix) {
+
+  //! не удаляются бегунки, у которых были изменены постфиксы. Возможно, браузер не может их найти из-за
+  //! того, что ищет по старым ид и постфиксам
+
+  let newPostfix = deletedPostfix - 1;
+  let parent = document.querySelector("." + className).parentNode;
+ 
+  for (let i = newPostfix; i < parent.children.length; i++) {
+    let thisChild = parent.children[i];
+    let [ , idNum, postf] = thisChild.id.split("-");
+    let newPostf = postf - 1;
+    let newId = "#" + className + '-' + idNum + '-' + newPostf;
+    thisChild.id = newId;
+    
+    if (thisChild.children.length > 0) {
+      for (let j = 0; j < thisChild.children.length; j++) {
+        let [childClassName, , ] = thisChild.children[j].id.split("-");
+        newId = childClassName + '-' + idNum + '-' + newPostf;
+        thisChild.children[j].id = newId;
+        console.log(thisChild.children[j].tagName);
+
+        if (thisChild.children[j].tagName === "LABLE") {
+          let lableElement = thisChild.children[j];
+          console.log(lableElement);
+
+          let attrFor = lableElement.getAttribute('for');
+
+          console.log("AAAAAAAAAAAAA");
+          let [forClass, ,] = attrFor.split("-");
+          attrFor = forClass + '-' + idNum + '-' + newPostf;
+          lableElement.setAttribute('for', attrFor);
+          lableElement.innerHTML = newPostf + ": ";
+        }
+      }
+    }
+  }
+  return;
+};
+
+function startValueHint (sliderHandleId) {
+  let [ , handleIdNum, ] = sliderHandleId.split("-");
+  let checkboxId = "#slider__valueCheckbox-" + handleIdNum;
+  let check = document.querySelector(checkboxId);
+  if (check.checked) {
+    return;
+  } else {
+    $("#" + sliderHandleId).addClass("hidden");
+  }
+ };
+
+
+toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
 
 
 //--------------------------------------------------------------------------
@@ -195,8 +299,12 @@ function addHandleListener (i, slider, handle, handleLabel) {
       let temp = parseFloat(handle.getBoundingClientRect().width);
 
       console.log('temp: ' + temp);
-      handleLabel.innerHTML = Math.round((max * percent) /100) + ', ' + percent;
-     
+      let val = Math.round((max * percent) /100);
+      handleLabel.innerHTML = val;
+
+      let [ , idNum, postfix] = handleLabel.id.split("-");
+      let handleField = document.querySelector("#slider__handleValueField-" + idNum + "-" + postfix);
+      handleField.value = val;
     };
   
     function onMouseUp() {

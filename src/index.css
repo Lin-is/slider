@@ -6,7 +6,7 @@ h1 {
     color: blueviolet;
 }
 
-.slider__control-container {
+.slider__controlContainer {
     width: 70%;
     margin: 0px auto 50px;
     display: flex;
@@ -15,12 +15,31 @@ h1 {
     background-color: lightgray;
 }
 
-.slider__control-elements {
+.slider__controlElements {
     width: 30%;
     background-color: rgba(32, 178, 170, 0.4);
     height: 100%;
     display: flex;
     flex-direction: column;
+}
+.slider__handleControl {
+    display: flex;
+    flex-direction: row;
+    margin-top: 5px;
+    width: 80%;
+    justify-content: start;
+}
+
+.slider__handleValueFieldLabel {
+    display: inline-block;
+    width: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.slider__handleValueField {
+    width: 70%;
+    margin-right: 5px;
 }
 
 
