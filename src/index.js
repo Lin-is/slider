@@ -59,13 +59,19 @@ function addSliderWithControl (id, min, max) {
   addHandleButton.type = "button";
   addHandleButton.innerHTML = "+";
 
-  let handleControlContainer = createElement("div", "slider__handleCotrolContainer", id);
+  let deleteAllHandlesButton = createElement("button", "slider__deleteAllHandlesButton", id);
+  deleteAllHandlesButton.type = "button";
+  deleteAllHandlesButton.innerHTML = "- all";
+  deleteAllHandlesButton.classList.add('hidden');
+
+  let handleControlContainer = createElement("div", "slider__handleControlContainer", id);
 
 
   $('#' + controlContainer.id).append(controlElements);
   $('#' + controlElements.id).append(valueCheckbox);
   $('#' + controlElements.id).append(checkboxLabel);
   $('#' + controlElements.id).append(addHandleButton);
+  $('#' + controlElements.id).append(deleteAllHandlesButton);
   $('#' + controlElements.id).append(handleControlContainer);
 
 
@@ -76,8 +82,16 @@ function addSliderWithControl (id, min, max) {
 
   but.onclick = function () {
     addSliderHandle(id, max);
+    $('#' + deleteAllHandlesButton.id).removeClass('hidden');
   };
 
+  let removeButtonId = "#" + deleteAllHandlesButton.id;
+  let removeBut = document.querySelector(removeButtonId);
+
+  removeBut.onclick = function () {
+    removeAllHandles(id);
+    $('#' + deleteAllHandlesButton.id).addClass('hidden');
+  }
 };
 
 function addSliderHandle (id, max) {
@@ -101,11 +115,10 @@ function addHandleControl (handleId) {
   let [ , idNumber, postfix] = handleId.split("-");
   let idPostfix = idNumber + '-' + postfix;
 
-  let containerId = "#slider__handleCotrolContainer-" + idNumber;
+  let containerId = "#slider__handleControlContainer-" + idNumber;
   let container = document.querySelector(containerId);
 
   let handleControl = createElement("div", "slider__handleControl", idPostfix);
-  let handleControlId = "#" + handleControl.id;
 
   $("#" + container.id).append(handleControl);
 
@@ -132,12 +145,12 @@ function addHandleControl (handleId) {
     let but = document.querySelector(buttonId);
   
     but.onclick = function () {
-      let [ , idNumberBut, postfixBut] = but.id.split("-");
+      let butId = $(this).attr("id");
+      let [ , idNumberBut, postfixBut] = butId.split("-");
       deleteSliderHandle(idNumberBut, postfixBut);
     };
   }
 };
-
 
 function letHandleRun () {
   for (let i = 0; i < sliders.length; i++) {
@@ -149,9 +162,8 @@ function letHandleRun () {
     let allHandles = $(sliderId).children('.slider__handle');
 
     for (let elem of allHandles) {
-      let [ , handleIdNum, idPostfix] = elem.id.split('-');
+      let [ ,  , idPostfix] = elem.id.split('-');
 
-      let handleId = '#slider__handle-' + handleIdNum + '-' + idPostfix;
       let handleLabelId = '#slider__handleLabel-' + id + '-' + idPostfix;
       let handleLabel = document.querySelector(handleLabelId);
 
@@ -187,30 +199,34 @@ function toggleValueHint(idArr, classCheckbox, classHint) {
   });
 };
 
-function deleteSliderHandle(idNumber, postfix) {
-  let idPostfix = idNumber + "-" + postfix;
-  let sliderControlId = "#slider__handleControl-" + idPostfix;
-  let handleId = "#slider__handle-" + idPostfix;
-
+function removeAllHandles (idNumber) {
   let sliderScaleId = "#slider__scale-" + idNumber;
+  let sliderParent = document.querySelector(sliderScaleId);
 
-  document.querySelector(sliderControlId).remove();
-  document.querySelector(handleId).remove();
-
-  if (postfix < document.querySelector(sliderScaleId).children.length + 1){
-    changePostfixes( 'slider__handle', postfix);
-    changePostfixes( 'slider__handleControl', postfix);
+  for (let i = sliderParent.children.length; i > 1; i--) {
+    deleteSliderHandle(idNumber, i, true);
   }
 };
 
-function changePostfixes(className, deletedPostfix) {
+function deleteSliderHandle(idNumber, postfix, isAll = false) {
 
-  //! не удаляются бегунки, у которых были изменены постфиксы. Возможно, браузер не может их найти из-за
-  //! того, что ищет по старым ид и постфиксам
+  let handleControlContainerId = "#slider__handleControlContainer-" + idNumber;
+  let sliderScaleId = "#slider__scale-" + idNumber;
+
+  document.querySelector(sliderScaleId).children[postfix-1].remove();
+  document.querySelector(handleControlContainerId).children[postfix-1].remove();
+
+  if (postfix < document.querySelector(sliderScaleId).children.length + 1 && !isAll){
+    changePostfixes( sliderScaleId, 'slider__handle', postfix);
+    changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
+  }
+};
+
+function changePostfixes(parentId, className, deletedPostfix) {
 
   let newPostfix = deletedPostfix - 1;
-  let parent = document.querySelector("." + className).parentNode;
- 
+  let parent = document.querySelector(parentId);
+  
   for (let i = newPostfix; i < parent.children.length; i++) {
     let thisChild = parent.children[i];
     let [ , idNum, postf] = thisChild.id.split("-");
@@ -223,21 +239,16 @@ function changePostfixes(className, deletedPostfix) {
         let [childClassName, , ] = thisChild.children[j].id.split("-");
         newId = childClassName + '-' + idNum + '-' + newPostf;
         thisChild.children[j].id = newId;
-        console.log(thisChild.children[j].tagName);
 
         if (thisChild.children[j].tagName === "LABLE") {
           let lableElement = thisChild.children[j];
-          console.log(lableElement);
-
           let attrFor = lableElement.getAttribute('for');
-
-          console.log("AAAAAAAAAAAAA");
           let [forClass, ,] = attrFor.split("-");
           attrFor = forClass + '-' + idNum + '-' + newPostf;
           lableElement.setAttribute('for', attrFor);
           lableElement.innerHTML = newPostf + ": ";
         }
-      }
+      }     
     }
   }
   return;
@@ -254,9 +265,7 @@ function startValueHint (sliderHandleId) {
   }
  };
 
-
 toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
-
 
 //--------------------------------------------------------------------------
 //------------- DRAG AND DROP FOR EVERY SLIDER -----------------------------
