@@ -1,6 +1,9 @@
 import './index.css';
 "use strict";
 
+
+
+
 function createElement (tag, className, id) {
     if (!tag || !className) {
       return;
@@ -15,7 +18,13 @@ function createElement (tag, className, id) {
     return newElem;
 };
 
+
+
+
 let sliders = [];
+
+
+
 
 function addNewSlider (id, min, max, sliderParent = document.body) {
 
@@ -41,6 +50,8 @@ function addNewSlider (id, min, max, sliderParent = document.body) {
 };
 
 
+
+
 function addSliderWithControl (id, min, max) {
 
   let controlContainer = createElement("div", "slider__controlContainer", id);
@@ -51,9 +62,37 @@ function addSliderWithControl (id, min, max) {
   let valueCheckbox = createElement("input", "slider__valueCheckbox", id);
   valueCheckbox.type = "checkbox";
   let checkboxLabel = createElement("label", "slider__valueCheckboxLabel", id);
-  checkboxLabel.for = valueCheckbox.id;
+  // checkboxLabel.for = valueCheckbox.id;
   checkboxLabel.setAttribute('for', '' + valueCheckbox.id);
   checkboxLabel.innerHTML = "Показать значение над ползунком";
+
+  //-----------------------  view radiobuttons  -------------------------------
+  
+  let viewRadioContainer = createElement("div", "slider__viewRadioContainer", id);
+  let viewRadioCommonLabel = createElement("label", "slider__viewRadioCommonLabel", id);
+  viewRadioCommonLabel.innerHTML = "Вид слайдера:";
+
+  let viewRadioHorizontal = createElement("input", "slider__viewRadio", "horizontal-" + id);
+  viewRadioHorizontal.type = "radio";
+  viewRadioHorizontal.name = "slider__viewRadio" + id;
+  viewRadioHorizontal.value = "horizontal";
+  viewRadioHorizontal.checked = true;
+
+  let viewRadioHorizontalLabel = createElement("label", "slider__viewRadioLabel", id);
+  viewRadioHorizontalLabel.setAttribute("for", "" + viewRadioHorizontal.id);
+  viewRadioHorizontalLabel.innerHTML = "Горизонтальный";
+
+  let viewRadioVertical = createElement("input", "slider__viewRadio", "vertical-" + id);
+  viewRadioVertical.type = "radio";
+  viewRadioVertical.name = "slider__viewRadio" + id;
+  viewRadioHorizontal.value = "vertical";
+
+  let viewRadioVerticalLabel = createElement("label", "slider__viewRadioLabel", id);
+  viewRadioVerticalLabel.setAttribute("for", "" + viewRadioVertical.id);
+  viewRadioVerticalLabel.innerHTML = "Вертикальный";
+
+
+//-----------------------------------------------------------------------------
 
   let addHandleButton = createElement("button", "slider__addHandleButton", id);
   addHandleButton.type = "button";
@@ -70,6 +109,15 @@ function addSliderWithControl (id, min, max) {
   $('#' + controlContainer.id).append(controlElements);
   $('#' + controlElements.id).append(valueCheckbox);
   $('#' + controlElements.id).append(checkboxLabel);
+
+  $('#' + controlElements.id).append(viewRadioContainer);
+  $('#' + viewRadioContainer.id).append(viewRadioCommonLabel);
+  $('#' + viewRadioContainer.id).append(viewRadioHorizontal);
+  $('#' + viewRadioContainer.id).append(viewRadioHorizontalLabel);
+  $('#' + viewRadioContainer.id).append(viewRadioVertical);
+  $('#' + viewRadioContainer.id).append(viewRadioVerticalLabel);
+  
+
   $('#' + controlElements.id).append(addHandleButton);
   $('#' + controlElements.id).append(deleteAllHandlesButton);
   $('#' + controlElements.id).append(handleControlContainer);
@@ -92,7 +140,68 @@ function addSliderWithControl (id, min, max) {
     removeAllHandles(id);
     $('#' + deleteAllHandlesButton.id).addClass('hidden');
   }
+
+  let radioIdHorizontal = "#" + viewRadioHorizontal.id;
+  let radioHorizontal = document.querySelector(radioIdHorizontal);
+
+  let radioIdVertical = "#" + viewRadioVertical.id;
+  let radioVertical = document.querySelector(radioIdVertical);
+
+  let sliderId = "slider__container-" + id;
+
+  radioHorizontal.onchange = function () {
+    if (radioHorizontal.checked) {
+      rotateSliderHorisontal(sliderId);
+    }
+  }
+  radioVertical.onchange = function () {
+    if (radioVertical.checked) {
+      rotateSliderVertical(sliderId);
+    }
+  }
+
 };
+
+
+
+function rotateSliderVertical (containerId) {
+  let searchContainerId = "#" + containerId;
+
+  if (!($(searchContainerId).hasClass("vertical"))) {
+    $(searchContainerId).addClass("vertical");
+    $(searchContainerId).children(".slider__scale").addClass("vertical");
+    let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
+  
+    for (let handle of handles) {
+      handle.classList.add("vertical");
+      let handleId = "#" + handle.id;
+      $(handleId).children(".slider__handleLabel").addClass("vertical");
+    }
+  }
+
+};
+
+
+function rotateSliderHorisontal (containerId) {
+
+  let searchContainerId = "#" + containerId;
+
+  if ($(searchContainerId).hasClass("vertical")) {
+
+    $(searchContainerId).removeClass("vertical");
+    $(searchContainerId).children(".slider__scale").removeClass("vertical");
+    let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
+
+    for (let handle of handles) {
+      handle.classList.remove("vertical");
+      let handleId = "#" + handle.id;
+      $(handleId).children(".slider__handleLabel").removeClass("vertical");
+    }
+  }
+
+};
+
+
 
 function addSliderHandle (id, max) {
 
@@ -111,7 +220,11 @@ function addSliderHandle (id, max) {
   addHandleControl(sliderHandleLabel.id);
 };
 
+
+
+
 function addHandleControl (handleId) {
+
   let [ , idNumber, postfix] = handleId.split("-");
   let idPostfix = idNumber + '-' + postfix;
 
@@ -152,6 +265,10 @@ function addHandleControl (handleId) {
   }
 };
 
+
+
+
+
 function letHandleRun () {
   for (let i = 0; i < sliders.length; i++) {
     let [ , id] = sliders[i].id.split('-');
@@ -172,8 +289,15 @@ function letHandleRun () {
   };
 };
 
+
+
+
 addSliderWithControl(5, 0, 100);
 addSliderWithControl(6, 0, 124);
+
+
+
+
 
 function toggleValueHint(idArr, classCheckbox, classHint) {
 
@@ -199,6 +323,10 @@ function toggleValueHint(idArr, classCheckbox, classHint) {
   });
 };
 
+
+
+
+
 function removeAllHandles (idNumber) {
   let sliderScaleId = "#slider__scale-" + idNumber;
   let sliderParent = document.querySelector(sliderScaleId);
@@ -207,6 +335,10 @@ function removeAllHandles (idNumber) {
     deleteSliderHandle(idNumber, i, true);
   }
 };
+
+
+
+
 
 function deleteSliderHandle(idNumber, postfix, isAll = false) {
 
@@ -221,6 +353,10 @@ function deleteSliderHandle(idNumber, postfix, isAll = false) {
     changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
   }
 };
+
+
+
+
 
 function changePostfixes(parentId, className, deletedPostfix) {
 
@@ -254,6 +390,10 @@ function changePostfixes(parentId, className, deletedPostfix) {
   return;
 };
 
+
+
+
+
 function startValueHint (sliderHandleId) {
   let [ , handleIdNum, ] = sliderHandleId.split("-");
   let checkboxId = "#slider__valueCheckbox-" + handleIdNum;
@@ -265,11 +405,24 @@ function startValueHint (sliderHandleId) {
   }
  };
 
+
+
+
+
+
 toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
+
+
+
+
+
 
 //--------------------------------------------------------------------------
 //------------- DRAG AND DROP FOR EVERY SLIDER -----------------------------
 //--------------------------------------------------------------------------
+
+
+
 
 function addHandleListener (i, slider, handle, handleLabel) {
 
@@ -306,8 +459,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
           percent = (((handle.getBoundingClientRect().right - slider.getBoundingClientRect().left)/slider.getBoundingClientRect().width) * 100).toFixed(0);
       }
       let temp = parseFloat(handle.getBoundingClientRect().width);
-
-      console.log('temp: ' + temp);
+      
       let val = Math.round((max * percent) /100);
       handleLabel.innerHTML = val;
 

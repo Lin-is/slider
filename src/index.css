@@ -106,3 +106,24 @@ h1 {
     visibility: hidden;
     height: 0px;
 }
+
+.slider__handle.vertical {
+    transform: rotate(90deg);
+    justify-content: center;
+}
+
+.slider__scale.vertical {
+    width: 10px;
+    height: 90%;
+}
+
+.slider__container.vertical {
+    height: 500px;
+    width: 100px;
+}
+
+.slider__handleLabel.vertical {
+    left: -11px;
+    top: -40px;
+    transform: rotate(-90deg);
+}
