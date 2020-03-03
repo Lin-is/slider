@@ -162,7 +162,16 @@ function addSliderWithControl (id, min, max) {
 
 
 function rotateSliderVertical (containerId) {
-  let searchContainerId = "#" + containerId;
+
+  let searchContainerId;
+
+  if (containerId.includes("#")) {
+    searchContainerId = containerId;
+    console.log('has #', searchContainerId);
+  } else {
+    searchContainerId = '#' + containerId;
+    console.log('doesn`t have #', searchContainerId)
+  }
 
   if (!($(searchContainerId).hasClass("vertical"))) {
     $(searchContainerId).addClass("vertical");
@@ -174,7 +183,10 @@ function rotateSliderVertical (containerId) {
       let oldLeft = handle.style.left;
       handle.style.left = -4 + "px";
       handle.style.top = oldLeft;
-      let handleId = "#" + handle.id;
+      let handleId = handle.id;
+      if (handleId.includes('#') == false) {
+        handleId = "#" + handle.id;
+      }
       $(handleId).children(".slider__handleLabel").addClass("vertical");
     }
   }
@@ -184,7 +196,13 @@ function rotateSliderVertical (containerId) {
 
 function rotateSliderHorisontal (containerId) {
 
-  let searchContainerId = "#" + containerId;
+  let searchContainerId;
+
+  if (containerId.includes("#")) {
+    searchContainerId = containerId;
+  } else {
+    searchContainerId = '#' + containerId;
+  }
 
   if ($(searchContainerId).hasClass("vertical")) {
 
@@ -197,7 +215,11 @@ function rotateSliderHorisontal (containerId) {
       let oldTop = handle.style.top;
       handle.style.top = -5 + "px";
       handle.style.left = oldTop;
-      let handleId = "#" + handle.id;
+      let handleId = handle.id;
+      if (handleId.includes('#') == false) {
+        handleId = "#" + handle.id;
+      }
+      console.log("BBBB handleId", handleId);
       $(handleId).children(".slider__handleLabel").removeClass("vertical");
     }
   }
@@ -477,9 +499,18 @@ function addHandleListener (i, slider, handle, handleLabel) {
   handle.onmousedown = function(event) {
     let min = sliders[i].minScaleValue,
         max = sliders[i].maxScaleValue,
-        shiftX;
+        shiftX,
+        prevHandle,
+        nextHandle;
 
     let isVertical = handle.classList.contains("vertical");
+
+    //---------------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------
+
+
+  
 
     //---------------------------------------------------------------------------------
     //---------------------------------------------------------------------------------
@@ -507,8 +538,26 @@ function addHandleListener (i, slider, handle, handleLabel) {
         finishEdge = slider.offsetWidth - handle.offsetWidth;
       }
 
+      
+      let [ handleClass, handleIdNum, handleNumPostfix] = handle.id.split("-");
+      console.log('handleIdNum', handleIdNum, 'handleNumPostfix', handleNumPostfix);
+      let nextSibling = handle.nextSibling;
+
+
+      if (handleNumPostfix > 1) {
+
+      }
+
+      if (nextSibling && isVertical) {
+          finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
+      } else if (nextSibling) {
+          finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
+      }
+      
+
+
       // курсор вышел из слайдера => оставить бегунок в его границах.
-      if (newCoord < 0) {
+      if (newCoord < min) {
         newCoord = -2;
       }
 
