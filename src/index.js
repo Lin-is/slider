@@ -183,11 +183,8 @@ function rotateSliderVertical (containerId) {
       let oldLeft = handle.style.left;
       handle.style.left = -4 + "px";
       handle.style.top = oldLeft;
-      let handleId = handle.id;
-      if (handleId.includes('#') == false) {
-        handleId = "#" + handle.id;
-      }
-      $(handleId).children(".slider__handleLabel").addClass("vertical");
+      let lable = handle.firstElementChild;
+      lable.classList.add("vertical");
     }
   }
 
@@ -215,15 +212,10 @@ function rotateSliderHorisontal (containerId) {
       let oldTop = handle.style.top;
       handle.style.top = -5 + "px";
       handle.style.left = oldTop;
-      let handleId = handle.id;
-      if (handleId.includes('#') == false) {
-        handleId = "#" + handle.id;
-      }
-      console.log("BBBB handleId", handleId);
-      $(handleId).children(".slider__handleLabel").removeClass("vertical");
+      let lable = handle.firstElementChild;
+      lable.classList.remove("vertical");
     }
   }
-
 };
 
 
