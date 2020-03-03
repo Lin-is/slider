@@ -167,10 +167,8 @@ function rotateSliderVertical (containerId) {
 
   if (containerId.includes("#")) {
     searchContainerId = containerId;
-    console.log('has #', searchContainerId);
   } else {
     searchContainerId = '#' + containerId;
-    console.log('doesn`t have #', searchContainerId)
   }
 
   if (!($(searchContainerId).hasClass("vertical"))) {
@@ -299,6 +297,17 @@ function addHandleControl (handleId) {
       let handle = document.querySelector(handleId);
       let sliderScale = document.querySelector(sliderScaleId); 
       let handleLabel = document.querySelector(handleLabelId);
+
+
+
+      //!-----------------------------------------------------------------------------
+      //!-----------------------------------------------------------------------------
+      //!-----------------------------------------------------------------------------
+      //! здесь баг
+      //! ползунок не перескакивает на введенное значение после удаления одного из предыдущих ползунков
+      //!-----------------------------------------------------------------------------
+      //!-----------------------------------------------------------------------------
+      //!-----------------------------------------------------------------------------
 
       if (handle.classList.contains("vertical")) {
         newValue = ((sliderScale.getBoundingClientRect().height * (inputValue))/max).toFixed(0);
@@ -491,9 +500,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
   handle.onmousedown = function(event) {
     let min = sliders[i].minScaleValue,
         max = sliders[i].maxScaleValue,
-        shiftX,
-        prevHandle,
-        nextHandle;
+        shiftX;
 
     let isVertical = handle.classList.contains("vertical");
 
@@ -531,13 +538,13 @@ function addHandleListener (i, slider, handle, handleLabel) {
       }
 
       
-      let [ handleClass, handleIdNum, handleNumPostfix] = handle.id.split("-");
-      console.log('handleIdNum', handleIdNum, 'handleNumPostfix', handleNumPostfix);
       let nextSibling = handle.nextSibling;
+      let prevSibling = handle.previousElementSibling;
 
-
-      if (handleNumPostfix > 1) {
-
+      if (prevSibling && isVertical) {
+        min = prevSibling.getBoundingClientRect().bottom - slider.getBoundingClientRect().top;
+      } else if (prevSibling) {
+        min = prevSibling.getBoundingClientRect().right - slider.getBoundingClientRect().left;
       }
 
       if (nextSibling && isVertical) {
@@ -550,7 +557,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
 
       // курсор вышел из слайдера => оставить бегунок в его границах.
       if (newCoord < min) {
-        newCoord = -2;
+        newCoord = min - 2;
       }
 
       if (newCoord > finishEdge) {
