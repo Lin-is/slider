@@ -278,6 +278,11 @@ function addHandleControl (handleId) {
   handleValueField.onchange = function() {
     let newValue;
     let inputValue = +handleValueField.value;
+    let valueWdth = max - min; 
+    let fieldId = $(this).attr("id");
+    let [ , idNum, idPost] = fieldId.split('-');
+
+    let idTail = idNum + '-' + idPost;
 
     if (!isNaN(inputValue)) {
 
@@ -289,31 +294,19 @@ function addHandleControl (handleId) {
         inputValue = max;
       }
 
+      let sliderScaleId = "#slider__scale-" + idNum;
+      let handleLabelId = "#slider__handleLabel-" + idTail;
 
-      let handleId = "#slider__handle-" + idPostfix;
-      let sliderScaleId = "#slider__scale-" + idNumber;
-      let handleLabelId = "#slider__handleLabel-" + idPostfix;
 
-      let handle = document.querySelector(handleId);
       let sliderScale = document.querySelector(sliderScaleId); 
       let handleLabel = document.querySelector(handleLabelId);
-
-
-
-      //!-----------------------------------------------------------------------------
-      //!-----------------------------------------------------------------------------
-      //!-----------------------------------------------------------------------------
-      //! здесь баг
-      //! ползунок не перескакивает на введенное значение после удаления одного из предыдущих ползунков
-      //!-----------------------------------------------------------------------------
-      //!-----------------------------------------------------------------------------
-      //!-----------------------------------------------------------------------------
+      let handle = handleLabel.parentNode;
 
       if (handle.classList.contains("vertical")) {
-        newValue = ((sliderScale.getBoundingClientRect().height * (inputValue))/max).toFixed(0);
+        newValue = ((sliderScale.getBoundingClientRect().height * (inputValue - min))/(valueWdth)).toFixed(0);
         handle.style.top = newValue + "px";
       } else {
-        newValue = ((sliderScale.getBoundingClientRect().width * inputValue)/max).toFixed(0);
+        newValue = ((sliderScale.getBoundingClientRect().width * (inputValue - min))/(valueWdth)).toFixed(0);
         handle.style.left = newValue + "px";
       }
 
@@ -498,18 +491,13 @@ function startValueHint (sliderHandleId) {
 function addHandleListener (i, slider, handle, handleLabel) {
 
   handle.onmousedown = function(event) {
-    let min = sliders[i].minScaleValue,
-        max = sliders[i].maxScaleValue,
+    let min = 0,
+        max = sliders[i].maxScaleValue - sliders[i].minScaleValue,
+        valueMin = sliders[i].minScaleValue,
+        valueMax = sliders[i].maxScaleValue,
         shiftX;
 
     let isVertical = handle.classList.contains("vertical");
-
-    //---------------------------------------------------------------------------------
-    //---------------------------------------------------------------------------------
-    //---------------------------------------------------------------------------------
-
-
-  
 
     //---------------------------------------------------------------------------------
     //---------------------------------------------------------------------------------
@@ -592,7 +580,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
           percent = (((handleCoordSec - sliderCoord)/sliderParam) * 100).toFixed(0);
       }
       
-      let val = Math.round((max * percent) /100);
+      let val = Math.round((max * percent) /100) + valueMin;
       handleLabel.innerHTML = val;
 
       let [ , idNum, postfix] = handleLabel.id.split("-");
@@ -619,8 +607,8 @@ function addHandleListener (i, slider, handle, handleLabel) {
 };
 
 
-addSliderWithControl(5, 0, 100);
-addSliderWithControl(6, 0, 124);
+addSliderWithControl(5, -100, -10);
+addSliderWithControl(6, 70, 124);
 toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
 
 
