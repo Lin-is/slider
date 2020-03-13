@@ -19,14 +19,10 @@ function createElement (tag, className, id) {
 };
 
 
-
-
 let sliders = [];
 
 
-
-
-function addNewSlider (id, min, max, sliderParent = document.body) {
+function addNewSlider (id, min, max, step = 1, sliderParent = document.body) {
 
   let mainDiv = createElement("div", "slider__container", id);
   let sliderScale = createElement("div", "slider__scale", id);
@@ -42,6 +38,7 @@ function addNewSlider (id, min, max, sliderParent = document.body) {
     id: mainDiv.id,
     minScaleValue: min,
     maxScaleValue: max, 
+    step: step,
   });
 
   sliderParent.append(mainDiv);
@@ -52,7 +49,7 @@ function addNewSlider (id, min, max, sliderParent = document.body) {
 
 
 
-function addSliderWithControl (id, min, max) {
+function addSliderWithControl (id, min, max, step) {
 
   let controlContainer = createElement("div", "slider__controlContainer", id);
   document.body.append(controlContainer);
@@ -123,7 +120,7 @@ function addSliderWithControl (id, min, max) {
   let buttonId = "#" + addHandleButton.id;
   let but = document.querySelector(buttonId);
 
-  addNewSlider(id, min, max, controlContainer);
+  addNewSlider(id, min, max, step, controlContainer);
 
   but.onclick = function () {
     addSliderHandle(id, max);
@@ -495,7 +492,11 @@ function addHandleListener (i, slider, handle, handleLabel) {
         max = sliders[i].maxScaleValue - sliders[i].minScaleValue,
         valueMin = sliders[i].minScaleValue,
         valueMax = sliders[i].maxScaleValue,
+        step = sliders[i].step,
+        stepSize = 1,
         shiftX;
+
+    console.log('step', step);
 
     let isVertical = handle.classList.contains("vertical");
 
@@ -513,6 +514,16 @@ function addHandleListener (i, slider, handle, handleLabel) {
    
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+
+
+    let stepNumber = max / step; 
+
+
+    if (isVertical && step > 1) {
+      stepSize = (slider.getBoundingClientRect().height - handle.getBoundingClientRect().height) / stepNumber;
+    } else if (step > 1) {
+      stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
+    } 
   
     function onMouseMove(event) {
       let newCoord, finishEdge;
@@ -536,59 +547,50 @@ function addHandleListener (i, slider, handle, handleLabel) {
       }
 
       if (nextSibling && isVertical) {
-          finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
+          finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height  - handle.offsetHeight;
       } else if (nextSibling) {
-          finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
+          finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width - handle.offsetWidth;
       }
-      
-
 
       // курсор вышел из слайдера => оставить бегунок в его границах.
-      if (newCoord < min) {
-        newCoord = min - 2;
+      
+
+      let finCoord = Math.round(newCoord / stepSize) * stepSize;
+
+      if (finCoord < min) {
+        finCoord = min - 2;
       }
 
-      if (newCoord > finishEdge) {
-        newCoord = finishEdge;
+      if (finCoord > finishEdge) {
+        finCoord = finishEdge;
       }
+
+      console.log('finCoord', finCoord);
 
       if (isVertical) {
-        handle.style.top = newCoord + 'px';
+        handle.style.top = finCoord + 'px';
       } else {
-        handle.style.left = newCoord + 'px';
+        handle.style.left = finCoord + 'px';
       }
   
       //--------  расчет числа над ползунком  ---------------
       //! избавиться от ширины ползунка
 
-      let handleCoordFirst, handleCoordSec, sliderCoord, sliderParam;
+      let handleCoordFirst, handleCoordSec, sliderCoord, sliderParam, percent;
 
       if (isVertical) {
-        handleCoordFirst = handle.getBoundingClientRect().top;
-        handleCoordSec = handle.getBoundingClientRect().bottom;
-        sliderCoord = slider.getBoundingClientRect().top;
-        sliderParam = slider.getBoundingClientRect().height;
+        percent = (finCoord / slider.offsetHeight) * 100;  
       } else {
-        handleCoordFirst = handle.getBoundingClientRect().left;
-        handleCoordSec = handle.getBoundingClientRect().right;
-        sliderCoord = slider.getBoundingClientRect().left;
-        sliderParam = slider.getBoundingClientRect().width;
-      }
- 
-      let percent = (((handleCoordFirst - sliderCoord)/sliderParam) * 100).toFixed(0);
-      if (percent > 50) {
-          percent = (((handleCoordSec - sliderCoord)/sliderParam) * 100).toFixed(0);
+        percent = (finCoord / slider.offsetWidth) * 100;
       }
       
-      let val = Math.round((max * percent) /100) + valueMin;
+      let val = Math.round((max * percent) /100 + valueMin);
       handleLabel.innerHTML = val;
 
       let [ , idNum, postfix] = handleLabel.id.split("-");
       let handleField = document.querySelector("#slider__handleValueField-" + idNum + "-" + postfix);
       handleField.value = val;
     };
-
-//not vertical = 
 
     //---------------------------------------------------------------------------------
     //---------------------------------------------------------------------------------
@@ -607,7 +609,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
 };
 
 
-addSliderWithControl(5, -100, -10);
+addSliderWithControl(5, -10, 10, 2);
 addSliderWithControl(6, 70, 124);
 toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
 
