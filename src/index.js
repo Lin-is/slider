@@ -44,12 +44,14 @@ function addNewSlider (id, min, max, step = 1, sliderParent = document.body) {
   sliderParent.append(mainDiv);
   $('#' + mainDiv.id).append(sliderScale);
   addSliderHandle(id, max);
+
+  return (sliders.length - 1);
 };
 
 
 
 
-function addSliderWithControl (id, min, max, step) {
+function addSliderWithControl (id, min, max, step = 1) {
 
   let controlContainer = createElement("div", "slider__controlContainer", id);
   document.body.append(controlContainer);
@@ -62,7 +64,40 @@ function addSliderWithControl (id, min, max, step) {
   checkboxLabel.setAttribute('for', '' + valueCheckbox.id);
   checkboxLabel.innerHTML = "Показать значение над ползунком";
 
-  //-----------------------  view radiobuttons  -------------------------------
+ //----------------------------------------------------------------------------
+ //------------------------ inputs for min and max ----------------------------
+ //----------------------------------------------------------------------------
+
+ let minMaxInputsContainer = createElement("div", "slider__minMaxInputsContainer", id);
+
+ let minInputLabel = createElement("div", "slider__minInputLabel", id);
+ minInputLabel.innerHTML = "Min:";
+ let minInput = createElement("input", "slider__minInput", id);
+ minInput.type = "text";
+ minInput.setAttribute("placeholder", "" + min);
+ minInputLabel.setAttribute("for", "" + minInput.id);
+
+
+ let maxInputLabel = createElement("div", "slider__maxInputLabel", id);
+ maxInputLabel.innerHTML = "Max:";
+ let maxInput = createElement("input", "slider__maxInput", id);
+ maxInput.type = "text";
+ maxInput.setAttribute("placeholder", "" + max);
+ maxInputLabel.setAttribute("for", "" + maxInput.id);
+
+
+ let stepInputLabel = createElement("div", "slider__stepInputLabel", id);
+ stepInputLabel.innerHTML = "Шаг:";
+ let stepInput = createElement("input", "slider__stepInput", id);
+ stepInput.type = "text";
+ stepInput.setAttribute("placeholder", "" + step);
+ stepInputLabel.setAttribute("for", "" + stepInput.id);
+
+
+
+
+ //---------------------------------------------------------------------------
+ //-----------------------  view radiobuttons  -------------------------------
   
   let viewRadioContainer = createElement("div", "slider__viewRadioContainer", id);
   let viewRadioCommonLabel = createElement("label", "slider__viewRadioCommonLabel", id);
@@ -105,6 +140,15 @@ function addSliderWithControl (id, min, max, step) {
   $('#' + controlElements.id).append(valueCheckbox);
   $('#' + controlElements.id).append(checkboxLabel);
 
+  $('#' + controlElements.id).append(minMaxInputsContainer);
+  $('#' + minMaxInputsContainer.id).append(minInputLabel);
+  $('#' + minMaxInputsContainer.id).append(minInput);
+  $('#' + minMaxInputsContainer.id).append(maxInputLabel);
+  $('#' + minMaxInputsContainer.id).append(maxInput);
+
+  $('#' + controlElements.id).append(stepInputLabel);
+  $('#' + controlElements.id).append(stepInput);
+
   $('#' + controlElements.id).append(viewRadioContainer);
   $('#' + viewRadioContainer.id).append(viewRadioCommonLabel);
   $('#' + viewRadioContainer.id).append(viewRadioHorizontal);
@@ -120,7 +164,29 @@ function addSliderWithControl (id, min, max, step) {
   let buttonId = "#" + addHandleButton.id;
   let but = document.querySelector(buttonId);
 
-  addNewSlider(id, min, max, step, controlContainer);
+  let sliderIndex = addNewSlider(id, min, max, step, controlContainer);
+
+
+  //!---------------------------------------------------------------
+  //!---------------------------------------------------------------
+  //!---------------------------------------------------------------
+  minInput.onchange = function () {
+    let newMin = +this.value;
+    setMinValue(sliderIndex, newMin);
+  };
+
+  maxInput.onchange = function () {
+    let newMax = +this.value;
+    setMaxValue(sliderIndex, newMax);
+  };
+
+  stepInput.onchange = function () {
+    let newStep = +this.value;
+    setStepValue(sliderIndex, newStep);
+  };
+  //!---------------------------------------------------------------
+  //!---------------------------------------------------------------
+  //!---------------------------------------------------------------
 
   but.onclick = function () {
     addSliderHandle(id, max);
@@ -213,7 +279,26 @@ function rotateSliderHorisontal (containerId) {
   }
 };
 
+//!_----------------------------------------------------------------------------
+//!-----------------------------------------------------------------------------
+//!-----------------------------------------------------------------------------
 
+function setMinValue (index, newMin) {
+  sliders[index].minScaleValue = newMin;
+};
+
+function setMaxValue (index, newMax) {
+  sliders[index].maxScaleValue = newMax;
+};
+
+function setStepValue (index, newStep) {
+  sliders[index].step = newStep;
+};
+
+
+//!_----------------------------------------------------------------------------
+//!-----------------------------------------------------------------------------
+//!-----------------------------------------------------------------------------
 
 function addSliderHandle (id, max) {
 
@@ -263,16 +348,21 @@ function addHandleControl (handleId) {
   $("#" + handleControl.id).append(handleValueFieldLabel);
   $("#" + handleControl.id).append(handleValueField);
 
-  let max, min;
+ 
+let sliderIndex;
 
   for (let j = 0; j < sliders.length; j++) {
     if (sliders[j].id == "slider__container-" + idNumber ) {
-      max = sliders[j].maxScaleValue;
-      min = sliders[j].minScaleValue;
+      sliderIndex = j;
     }
   }
 
   handleValueField.onchange = function() {
+    let max, min;
+
+    max = sliders[sliderIndex].maxScaleValue;
+    min = sliders[sliderIndex].minScaleValue;
+
     let newValue;
     let inputValue = +handleValueField.value;
     let valueWdth = max - min; 
@@ -496,7 +586,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
         stepSize = 1,
         shiftX;
 
-    console.log('step', step);
+    // console.log('step', step);
 
     let isVertical = handle.classList.contains("vertical");
 
@@ -524,16 +614,24 @@ function addHandleListener (i, slider, handle, handleLabel) {
     } else if (step > 1) {
       stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
     } 
-  
+
     function onMouseMove(event) {
       let newCoord, finishEdge;
+
+      // if (isVertical) {
+      //   finishEdge = slider.offsetHeight - handle.offsetHeight;
+      //   newCoord = event.clientY - shiftX - slider.getBoundingClientRect().top;
+      // } else {
+      //   newCoord = event.clientX - shiftX - slider.getBoundingClientRect().left;
+      //   finishEdge = slider.offsetWidth - handle.offsetWidth;
+      // }
 
       if (isVertical) {
         finishEdge = slider.offsetHeight - handle.offsetHeight;
         newCoord = event.clientY - shiftX - slider.getBoundingClientRect().top;
       } else {
         newCoord = event.clientX - shiftX - slider.getBoundingClientRect().left;
-        finishEdge = slider.offsetWidth - handle.offsetWidth;
+        finishEdge = slider.offsetWidth - handle.offsetWidth / 2;
       }
 
       
@@ -546,11 +644,12 @@ function addHandleListener (i, slider, handle, handleLabel) {
         min = prevSibling.getBoundingClientRect().right - slider.getBoundingClientRect().left;
       }
 
+
       if (nextSibling && isVertical) {
-          finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height  - handle.offsetHeight;
-      } else if (nextSibling) {
-          finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width - handle.offsetWidth;
-      }
+        finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
+    } else if (nextSibling) {
+        finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
+    }
 
       // курсор вышел из слайдера => оставить бегунок в его границах.
       
@@ -558,14 +657,14 @@ function addHandleListener (i, slider, handle, handleLabel) {
       let finCoord = Math.round(newCoord / stepSize) * stepSize;
 
       if (finCoord < min) {
-        finCoord = min - 2;
+        finCoord = min;
       }
 
       if (finCoord > finishEdge) {
         finCoord = finishEdge;
       }
 
-      console.log('finCoord', finCoord);
+      // console.log('finCoord', finCoord);
 
       if (isVertical) {
         handle.style.top = finCoord + 'px';
@@ -574,14 +673,14 @@ function addHandleListener (i, slider, handle, handleLabel) {
       }
   
       //--------  расчет числа над ползунком  ---------------
-      //! избавиться от ширины ползунка
+      //! шкала работает неправильно
 
-      let handleCoordFirst, handleCoordSec, sliderCoord, sliderParam, percent;
+      let percent;
 
       if (isVertical) {
         percent = (finCoord / slider.offsetHeight) * 100;  
       } else {
-        percent = (finCoord / slider.offsetWidth) * 100;
+        percent = (finCoord /(slider.offsetWidth - handle.offsetWidth/2)) * 100;
       }
       
       let val = Math.round((max * percent) /100 + valueMin);
@@ -609,7 +708,7 @@ function addHandleListener (i, slider, handle, handleLabel) {
 };
 
 
-addSliderWithControl(5, -10, 10, 2);
+addSliderWithControl(5, -10, 30, 2);
 addSliderWithControl(6, 70, 124);
 toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
 
