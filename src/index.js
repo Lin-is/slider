@@ -47,6 +47,12 @@ class SliderModel {
   deleteSlider() {}
 }
 
+
+
+
+
+
+
 class SliderView {
   constructor(model) {
     this.model = model;
@@ -129,6 +135,7 @@ class SliderView {
 
     //---------------------------------------------------------------------------
     //-----------------------  view radiobuttons  -------------------------------
+    //---------------------------------------------------------------------------
       
     this.viewRadioContainer = this.createElement("div", "slider__viewRadioContainer", idNum);
     this.viewRadioCommonLabel = this.createElement("label", "slider__viewRadioCommonLabel", idNum);
@@ -200,26 +207,57 @@ class SliderView {
     let that = this;
 
 
-    this.addSliderHandle(this.sliderScale, that, idNum);
+    this.addSliderHandle(that, idNum);
 
-    let sliderScale = this.sliderScale;
+    // let sliderScale = this.sliderScale;
     let deleteAllHandlesButton = this.deleteAllHandlesButton;
+    let radioVertical = this.viewRadioVertical;
+    let radioHorizontal = this.viewRadioHorizontal;
+    let mainDivId = this.mainDiv.id;
+    let valueCheckbox = this.valueCheckbox;
+    
 
 
     this.addHandleButton.onclick = function () {
-        that.addSliderHandle(sliderScale, that, idNum);
-        deleteAllHandlesButton.classList.remove('hidden');
+      let [, thisIdNum] =  this.id.split('-');
+      console.log('this.id', this.id);
+      that.addSliderHandle(that, thisIdNum);
+      deleteAllHandlesButton.classList.remove('hidden');
     };
 
     this.deleteAllHandlesButton.onclick = function () {
       that.removeAllHandles(idNum);
       this.classList.add('hidden');
     }
+
+    this.viewRadioHorizontal.onchange = function () {
+      if (radioHorizontal.checked) {
+        that.rotateSliderHorisontal(mainDivId);
+      }
+    }
+
+    this.viewRadioVertical.onchange = function () {
+       if (radioVertical.checked) {
+         that.rotateSliderVertical(mainDivId);
+       }
+    }
+
+    this.valueCheckbox.onchange = function () {
+      if (valueCheckbox.checked) {
+        that.showHandleLable(idNum, true);
+      } else {
+        that.showHandleLable(idNum, false);
+      }
+    }
+
   }
 
-  addSliderHandle (sliderScale, that, idNum) {
-    
-    console.log('sliderScale', sliderScale);
+  addSliderHandle (that, idNum) {
+
+    // let sliderScaleId = '#slider__scale' + '-' + idNum;
+    // let sliderScale = document.querySelector(sliderScaleId);
+
+    let sliderScale = this.getElement('', 'slider__scale', idNum);
 
     let handleLabelNumber = sliderScale.children.length;
     let handleIdPostfix = idNum + "-" + ++handleLabelNumber;
@@ -229,6 +267,12 @@ class SliderView {
     sliderScale.append(that.sliderHandle);
     that.sliderHandle.append(that.sliderHandleLabel);
 
+    
+
+    if (!sliderScale.parentElement.previousElementSibling.firstElementChild.checked) {
+      that.sliderHandleLabel.classList.add('hidden');
+    }
+
     if (sliderScale.classList.contains("vertical")){
       that.sliderHandle.classList.add("vertical");
       that.sliderHandleLabel.classList.add("vertical");
@@ -236,9 +280,11 @@ class SliderView {
 
     let handleControlContainer = sliderScale.parentElement.previousElementSibling.lastElementChild;
 
-    // that.sliderHandleLabel.innerHTML = max/2;
+    let max = that.model.sliders[idNum - 1].maxScaleValue;
+    let min = that.model.sliders[idNum - 1].minScaleValue;
+    let step = that.model.sliders[idNum - 1].step;
     this.addHandleControl(handleControlContainer, that);
-    this.addHandleListener(this);
+    this.addHandleListener(this, idNum, min, max, step);
   }
 
   addHandleControl (handleControlContainer, that) {
@@ -267,21 +313,32 @@ class SliderView {
       that.deleteHandleButton.innerHTML = "-";
 
       that.handleControl.append(that.deleteHandleButton);
+
+      let newThat = this;
+
+      that.deleteHandleButton.onclick = function () {
+        let butId = $(this).attr("id");
+        let [ , idNumberBut, postfixBut] = butId.split("-");
+        newThat.deleteSliderHandle(idNumberBut, postfixBut);
+      };
     }
+
+
+
   };
 
     
-  addHandleListener (that) {
+  addHandleListener (that, idNum, sliderMin, sliderMax, sliderStep) {
+      let slider = that.getElement( '', 'slider__scale', idNum),
+          handle = that.sliderHandle,
+          handleLabel = that.sliderHandleLabel,
+          handleField = that.handleValueField;
 
-      let slider = that.sliderScale;
-      let handle = that.sliderHandle;
-      let handleLabel = that.sliderHandleLabel;
-      let handleField = that.handleValueField;
 
       let min = 0,
-          max = that.max - that.min,
-          valueMin = that.min,
-          step = that.step,
+          max = sliderMax - sliderMin,
+          valueMin = sliderMin,
+          step = sliderStep,
           stepSize = 1,
           shiftX;
 
@@ -293,6 +350,7 @@ class SliderView {
       
         if (isVertical) {
           shiftX = event.clientY - handle.getBoundingClientRect().top;
+          console.log('handle', handle);
         } else {
           shiftX = event.clientX - handle.getBoundingClientRect().left;
         }
@@ -305,6 +363,7 @@ class SliderView {
         stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
         if (isVertical) {
           stepSize = (slider.getBoundingClientRect().height - handle.getBoundingClientRect().height) / stepNumber;
+          console.log('stepSize isVertical', stepSize);
         }
 
         function onMouseMove(event) {
@@ -400,13 +459,116 @@ class SliderView {
     document.querySelector(handleControlContainerId).children[postfix-1].remove();
 
     if (postfix < document.querySelector(sliderScaleId).children.length + 1 && !isAll){
-      changePostfixes( sliderScaleId, 'slider__handle', postfix);
-      changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
+      this.changePostfixes( sliderScaleId, 'slider__handle', postfix);
+      this.changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
     }
   };
 
+ 
+
+  rotateSliderVertical (containerId) {
+    let searchContainerId;
+
+    if (containerId.includes("#")) {
+      searchContainerId = containerId;
+    } else {
+      searchContainerId = '#' + containerId;
+    }
+
+    if (!($(searchContainerId).hasClass("vertical"))) {
+      $(searchContainerId).addClass("vertical");
+      $(searchContainerId).children(".slider__scale").addClass("vertical");
+      let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
+    
+      for (let handle of handles) {
+        handle.classList.add("vertical");
+        let oldLeft = handle.style.left;
+        handle.style.left = -4 + "px";
+        handle.style.top = oldLeft;
+        let lable = handle.firstElementChild;
+        lable.classList.add("vertical");
+      }
+    }
+  };
+
+  rotateSliderHorisontal (containerId) {
+    let searchContainerId;
+
+    if (containerId.includes("#")) {
+      searchContainerId = containerId;
+    } else {
+      searchContainerId = '#' + containerId;
+    }
+
+    if ($(searchContainerId).hasClass("vertical")) {
+      $(searchContainerId).removeClass("vertical");
+      $(searchContainerId).children(".slider__scale").removeClass("vertical");
+      let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
+
+      for (let handle of handles) {
+        handle.classList.remove("vertical");
+        let oldTop = handle.style.top;
+        handle.style.top = -5 + "px";
+        handle.style.left = oldTop;
+        let lable = handle.firstElementChild;
+        lable.classList.remove("vertical");
+      }
+    }
+  };
+
+  changePostfixes(parentId, className, deletedPostfix) {
+
+    let newPostfix = deletedPostfix - 1;
+    let parent = document.querySelector(parentId);
+
+    for (let i = newPostfix; i < parent.children.length; i++) {
+      let thisChild = parent.children[i];
+      let [ , idNum, postf] = thisChild.id.split("-");
+      let newPostf = postf - 1;
+      let newId = "#" + className + '-' + idNum + '-' + newPostf;
+      thisChild.id = newId;
+
+      if (thisChild.children.length > 0) {
+        for (let j = 0; j < thisChild.children.length; j++) {
+          let [childClassName, , ] = thisChild.children[j].id.split("-");
+          newId = childClassName + '-' + idNum + '-' + newPostf;
+          thisChild.children[j].id = newId;
+
+          if (thisChild.children[j].tagName === "LABLE") {
+            let lableElement = thisChild.children[j];
+            let attrFor = lableElement.getAttribute('for');
+            let [forClass, ,] = attrFor.split("-");
+            attrFor = forClass + '-' + idNum + '-' + newPostf;
+            lableElement.setAttribute('for', attrFor);
+            lableElement.innerHTML = newPostf + ": ";
+          }
+        }     
+      }
+    }
+    return;
+  };
+
+  showHandleLable(idNum, isToShow) {
+    let parentSlider = this.getElement('', 'slider__scale', idNum);
+    let handles = Array.prototype.slice.call(parentSlider.children);
+
+    console.log('handles', handles);
+
+    handles.forEach(item => {
+      if (isToShow) {
+        if (item.firstElementChild.classList.contains("hidden")){
+          item.firstElementChild.classList.remove("hidden");
+        }
+      } else if (!item.firstElementChild.classList.contains("hidden")) {
+        item.firstElementChild.classList.add("hidden");
+      }
+    })
+  };
 
 }
+
+
+
 
 
 
@@ -417,6 +579,8 @@ class SliderController {
     this.view = view;
   }
 }
+
+
 
 
 const newModel = new SliderModel();
@@ -442,99 +606,7 @@ const app = new SliderController(newModel, new SliderView(newModel));
 //     let newStep = +this.value;
 //     setStepValue(sliderIndex, newStep);
 //   };
-//   //!---------------------------------------------------------------
-//   //!---------------------------------------------------------------
-//   //!---------------------------------------------------------------
 
-//   but.onclick = function () {
-//     addSliderHandle(id, max);
-//     $('#' + deleteAllHandlesButton.id).removeClass('hidden');
-//   };
-
-//   let removeButtonId = "#" + deleteAllHandlesButton.id;
-//   let removeBut = document.querySelector(removeButtonId);
-
-//   removeBut.onclick = function () {
-//     removeAllHandles(id);
-//     $('#' + deleteAllHandlesButton.id).addClass('hidden');
-//   }
-
-//   let radioIdHorizontal = "#" + viewRadioHorizontal.id;
-//   let radioHorizontal = document.querySelector(radioIdHorizontal);
-
-//   let radioIdVertical = "#" + viewRadioVertical.id;
-//   let radioVertical = document.querySelector(radioIdVertical);
-
-//   let sliderId = "slider__container-" + id;
-
-//   radioHorizontal.onchange = function () {
-//     if (radioHorizontal.checked) {
-//       rotateSliderHorisontal(sliderId);
-//     }
-//   }
-//   radioVertical.onchange = function () {
-//     if (radioVertical.checked) {
-//       rotateSliderVertical(sliderId);
-//     }
-//   }
-
-// };
-
-
-
-// function rotateSliderVertical (containerId) {
-
-//   let searchContainerId;
-
-//   if (containerId.includes("#")) {
-//     searchContainerId = containerId;
-//   } else {
-//     searchContainerId = '#' + containerId;
-//   }
-
-//   if (!($(searchContainerId).hasClass("vertical"))) {
-//     $(searchContainerId).addClass("vertical");
-//     $(searchContainerId).children(".slider__scale").addClass("vertical");
-//     let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
-  
-//     for (let handle of handles) {
-//       handle.classList.add("vertical");
-//       let oldLeft = handle.style.left;
-//       handle.style.left = -4 + "px";
-//       handle.style.top = oldLeft;
-//       let lable = handle.firstElementChild;
-//       lable.classList.add("vertical");
-//     }
-//   }
-
-// };
-
-
-// function rotateSliderHorisontal (containerId) {
-
-//   let searchContainerId;
-
-//   if (containerId.includes("#")) {
-//     searchContainerId = containerId;
-//   } else {
-//     searchContainerId = '#' + containerId;
-//   }
-
-//   if ($(searchContainerId).hasClass("vertical")) {
-
-//     $(searchContainerId).removeClass("vertical");
-//     $(searchContainerId).children(".slider__scale").removeClass("vertical");
-//     let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
-
-//     for (let handle of handles) {
-//       handle.classList.remove("vertical");
-//       let oldTop = handle.style.top;
-//       handle.style.top = -5 + "px";
-//       handle.style.left = oldTop;
-//       let lable = handle.firstElementChild;
-//       lable.classList.remove("vertical");
-//     }
-//   }
 // };
 
 // //!_----------------------------------------------------------------------------
@@ -558,70 +630,6 @@ const app = new SliderController(newModel, new SliderView(newModel));
 // //!-----------------------------------------------------------------------------
 // //!-----------------------------------------------------------------------------
 
-// function addHandleControl (handleId) {
-
-//   handleValueField.onchange = function() {
-//     let max, min;
-
-//     max = sliders[sliderIndex].maxScaleValue;
-//     min = sliders[sliderIndex].minScaleValue;
-
-//     let newValue;
-//     let inputValue = +handleValueField.value;
-//     let valueWdth = max - min; 
-//     let fieldId = $(this).attr("id");
-//     let [ , idNum, idPost] = fieldId.split('-');
-
-//     let idTail = idNum + '-' + idPost;
-
-//     if (!isNaN(inputValue)) {
-
-//       if (inputValue < min) {
-//         inputValue = min;
-//       }
-
-//       if (inputValue > max) {
-//         inputValue = max;
-//       }
-
-//       let sliderScaleId = "#slider__scale-" + idNum;
-//       let handleLabelId = "#slider__handleLabel-" + idTail;
-
-
-//       let sliderScale = document.querySelector(sliderScaleId); 
-//       let handleLabel = document.querySelector(handleLabelId);
-//       let handle = handleLabel.parentNode;
-
-//       if (handle.classList.contains("vertical")) {
-//         newValue = ((sliderScale.getBoundingClientRect().height * (inputValue - min))/(valueWdth)).toFixed(0);
-//         handle.style.top = newValue + "px";
-//       } else {
-//         newValue = ((sliderScale.getBoundingClientRect().width * (inputValue - min))/(valueWdth)).toFixed(0);
-//         handle.style.left = newValue + "px";
-//       }
-
-//       handleLabel.innerHTML = inputValue;
-//     }
-//   }
-
-//   if (postfix > 1)  {
-
-//     let deleteHandleButton = createElement("button", "slider__deleteHandleButton", idPostfix);
-//     deleteHandleButton.type = "button";
-//     deleteHandleButton.innerHTML = "-";
-
-//     $("#" + handleControl.id).append(deleteHandleButton);
-
-//     let buttonId = "#" + deleteHandleButton.id;
-//     let but = document.querySelector(buttonId);
-  
-//     but.onclick = function () {
-//       let butId = $(this).attr("id");
-//       let [ , idNumberBut, postfixBut] = butId.split("-");
-//       deleteSliderHandle(idNumberBut, postfixBut);
-//     };
-//   }
-// };
 
 // function toggleValueHint(idArr, classCheckbox, classHint) {
 
@@ -648,76 +656,6 @@ const app = new SliderController(newModel, new SliderView(newModel));
 // };
 
 
-
-
-
-// function removeAllHandles (idNumber) {
-//   let sliderScaleId = "#slider__scale-" + idNumber;
-//   let sliderParent = document.querySelector(sliderScaleId);
-
-//   for (let i = sliderParent.children.length; i > 1; i--) {
-//     deleteSliderHandle(idNumber, i, true);
-//   }
-// };
-
-
-
-
-
-// function deleteSliderHandle(idNumber, postfix, isAll = false) {
-
-//   let handleControlContainerId = "#slider__handleControlContainer-" + idNumber;
-//   let sliderScaleId = "#slider__scale-" + idNumber;
-
-//   document.querySelector(sliderScaleId).children[postfix-1].remove();
-//   document.querySelector(handleControlContainerId).children[postfix-1].remove();
-
-//   if (postfix < document.querySelector(sliderScaleId).children.length + 1 && !isAll){
-//     changePostfixes( sliderScaleId, 'slider__handle', postfix);
-//     changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
-//   }
-// };
-
-
-
-
-
-// function changePostfixes(parentId, className, deletedPostfix) {
-
-//   let newPostfix = deletedPostfix - 1;
-//   let parent = document.querySelector(parentId);
-  
-//   for (let i = newPostfix; i < parent.children.length; i++) {
-//     let thisChild = parent.children[i];
-//     let [ , idNum, postf] = thisChild.id.split("-");
-//     let newPostf = postf - 1;
-//     let newId = "#" + className + '-' + idNum + '-' + newPostf;
-//     thisChild.id = newId;
-    
-//     if (thisChild.children.length > 0) {
-//       for (let j = 0; j < thisChild.children.length; j++) {
-//         let [childClassName, , ] = thisChild.children[j].id.split("-");
-//         newId = childClassName + '-' + idNum + '-' + newPostf;
-//         thisChild.children[j].id = newId;
-
-//         if (thisChild.children[j].tagName === "LABLE") {
-//           let lableElement = thisChild.children[j];
-//           let attrFor = lableElement.getAttribute('for');
-//           let [forClass, ,] = attrFor.split("-");
-//           attrFor = forClass + '-' + idNum + '-' + newPostf;
-//           lableElement.setAttribute('for', attrFor);
-//           lableElement.innerHTML = newPostf + ": ";
-//         }
-//       }     
-//     }
-//   }
-//   return;
-// };
-
-
-
-
-
 // function startValueHint (sliderHandleId) {
 //   let [ , handleIdNum, ] = sliderHandleId.split("-");
 //   let checkboxId = "#slider__valueCheckbox-" + handleIdNum;
@@ -730,145 +668,6 @@ const app = new SliderController(newModel, new SliderView(newModel));
 //  };
 
 
-
-
-
-
-
-
-
-
-
-
-
-// //--------------------------------------------------------------------------
-// //------------- DRAG AND DROP FOR EVERY SLIDER -----------------------------
-// //--------------------------------------------------------------------------
-
-// function addHandleListener (i, slider, handle, handleLabel) {
-
-//   handle.onmousedown = function(event) {
-//     let min = 0,
-//         max = sliders[i].maxScaleValue - sliders[i].minScaleValue,
-//         valueMin = sliders[i].minScaleValue,
-//         valueMax = sliders[i].maxScaleValue,
-//         step = sliders[i].step,
-//         stepSize = 1,
-//         shiftX;
-
-//     let isVertical = handle.classList.contains("vertical");
-
-//     //---------------------------------------------------------------------------------
-//     //---------------------------------------------------------------------------------
-//     //---------------------------------------------------------------------------------
-
-//     event.preventDefault(); // предотвратить запуск выделения (действие браузера)
-  
-//     if (isVertical) {
-//       shiftX = event.clientY - handle.getBoundingClientRect().top;
-//     } else {
-//       shiftX = event.clientX - handle.getBoundingClientRect().left;
-//     }
-   
-//     document.addEventListener('mousemove', onMouseMove);
-//     document.addEventListener('mouseup', onMouseUp);
-
-
-//     let stepNumber = max / step; 
-
-
-//     if (isVertical && step > 1) {
-//       stepSize = (slider.getBoundingClientRect().height - handle.getBoundingClientRect().height) / stepNumber;
-//     } else if (step > 1) {
-//       stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
-//     } 
-
-//     function onMouseMove(event) {
-//       let newCoord, finishEdge;
-
-//       if (isVertical) {
-//         finishEdge = slider.offsetHeight - handle.offsetHeight;
-//         newCoord = event.clientY - shiftX - slider.getBoundingClientRect().top;
-//       } else {
-//         newCoord = event.clientX - shiftX - slider.getBoundingClientRect().left;
-//         finishEdge = slider.offsetWidth - handle.offsetWidth / 2;
-//       }
-
-      
-//       let nextSibling = handle.nextSibling;
-//       let prevSibling = handle.previousElementSibling;
-
-//       if (prevSibling && isVertical) {
-//         min = prevSibling.getBoundingClientRect().bottom - slider.getBoundingClientRect().top;
-//       } else if (prevSibling) {
-//         min = prevSibling.getBoundingClientRect().right - slider.getBoundingClientRect().left;
-//       }
-
-
-//       if (nextSibling && isVertical) {
-//         finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
-//     } else if (nextSibling) {
-//         finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
-//     }
-
-//       // курсор вышел из слайдера => оставить бегунок в его границах.
-      
-
-//       let finCoord = Math.round(newCoord / stepSize) * stepSize;
-
-//       if (finCoord < min) {
-//         finCoord = min;
-//       }
-
-//       if (finCoord > finishEdge) {
-//         finCoord = finishEdge;
-//       }
-
-//       if (isVertical) {
-//         handle.style.top = finCoord + 'px';
-//       } else {
-//         handle.style.left = finCoord + 'px';
-//       }
-  
-//       //--------  расчет числа над ползунком  ---------------
-//       //! шкала работает неправильно
-
-//       let percent;
-
-//       if (isVertical) {
-//         percent = (finCoord / slider.offsetHeight) * 100;  
-//       } else {
-//         percent = (finCoord /(slider.offsetWidth - handle.offsetWidth/2)) * 100;
-//       }
-      
-//       let val = Math.round((max * percent) /100 + valueMin);
-//       handleLabel.innerHTML = val;
-
-//       let [ , idNum, postfix] = handleLabel.id.split("-");
-//       let handleField = document.querySelector("#slider__handleValueField-" + idNum + "-" + postfix);
-//       handleField.value = val;
-//     };
-
-//     //---------------------------------------------------------------------------------
-//     //---------------------------------------------------------------------------------
-//     //---------------------------------------------------------------------------------
-  
-//     function onMouseUp() {
-//       document.removeEventListener('mouseup', onMouseUp);
-//       document.removeEventListener('mousemove', onMouseMove);
-//     };
-  
-//   };
-  
-//   handle.ondragstart = function() {
-//     return false;
-//   };
-// };
-
-
-// addSliderWithControl(5, -10, 30, 2);
-// addSliderWithControl(6, 70, 124);
-// toggleValueHint(sliders, "slider__valueCheckbox", "slider__handleLabel");
 
 
 
