@@ -552,8 +552,6 @@ class SliderView {
     let parentSlider = this.getElement('', 'slider__scale', idNum);
     let handles = Array.prototype.slice.call(parentSlider.children);
 
-    console.log('handles', handles);
-
     handles.forEach(item => {
       if (isToShow) {
         if (item.firstElementChild.classList.contains("hidden")){
@@ -566,10 +564,6 @@ class SliderView {
   };
 
 }
-
-
-
-
 
 
 
@@ -589,9 +583,7 @@ const app = new SliderController(newModel, new SliderView(newModel));
 
 
 // function addSliderWithControl (id, min, max, step = 1) {
-//   //!---------------------------------------------------------------
-//   //!---------------------------------------------------------------
-//   //!---------------------------------------------------------------
+
 //   minInput.onchange = function () {
 //     let newMin = +this.value;
 //     setMinValue(sliderIndex, newMin);
@@ -630,42 +622,6 @@ const app = new SliderController(newModel, new SliderView(newModel));
 // //!-----------------------------------------------------------------------------
 // //!-----------------------------------------------------------------------------
 
-
-// function toggleValueHint(idArr, classCheckbox, classHint) {
-
-//   idArr.forEach((item) => {
-//     let [ , id] = item.id.split('-');
-//     let check = document.querySelector("#" + classCheckbox + "-" + id);
-
-//     check.onchange = function () {
-//       let sliderId = "#slider__scale-" + id;
-//       let allHandles = $(sliderId).children('.slider__handle');
-
-//       for (let handle of allHandles) {
-//         let [ , handleIdNum, idPostfix] = handle.id.split('-');
-//         let handleLabelId = '#slider__handleLabel-' + handleIdNum + '-' + idPostfix;
-//         if (check.checked) {
-//           $(handleLabelId).removeClass("hidden"); 
-//         } else {
-//           $(handleLabelId).addClass("hidden"); 
-//         }
-//       }
-//     };
-
-//   });
-// };
-
-
-// function startValueHint (sliderHandleId) {
-//   let [ , handleIdNum, ] = sliderHandleId.split("-");
-//   let checkboxId = "#slider__valueCheckbox-" + handleIdNum;
-//   let check = document.querySelector(checkboxId);
-//   if (check.checked) {
-//     return;
-//   } else {
-//     $("#" + sliderHandleId).addClass("hidden");
-//   }
-//  };
 
 
 
