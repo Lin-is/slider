@@ -10,7 +10,7 @@ h1 {
     color: #b5a4d6;
 }
 
-.slider__controlContainer {
+.slider__mainContainer {
     width: 70%;
     margin: 0px auto 50px;
     display: flex;
@@ -106,11 +106,13 @@ h1 {
     text-align: center;
     width: 40px; 
     height: 20px;
-    top: -30px;
+    top: -35px;
     left: -10px;
     background-color: #eeebd9;
     border: 1px solid #424242;
     border-radius: 5px;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
 }
 
 .hidden {

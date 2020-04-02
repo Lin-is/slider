@@ -1,38 +1,59 @@
 import './index.css';
 "use strict";
 
-class SliderModel {
+class Observable {
   constructor() {
-    this.sliders = [ {idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 2},
-                     {idNum: 2, minScaleValue: -50, maxScaleValue: 352, step: 1},
-                     {idNum: 3, minScaleValue: 15, maxScaleValue: 120, step: 5},]; 
-  }
+    let that = this;
+    this.observers = [];
+    this.sendMessage = function (msg) {
+      for (var i = 0, len = that.observers.length; i < len; i++) {
+        that.observers[i].notify(msg);
+      }
+    };
+    this.addObserver = function (observer) {
+      that.observers.push(observer);
+    };
+  }  
+}
 
-  addSlider(idNum = this.sliders.length > 0 ? this.sliders[this.sliders.length - 1].idNum + 1 : 1, min = 0, max = 100, step = 1) {
+
+
+class SliderModel {
+  
+  constructor() {
+    this.sliders = [ {idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 2, handleNumber: 1},
+                     {idNum: 2, minScaleValue: -50, maxScaleValue: 352, step: 1, handleNumber: 2},
+                     {idNum: 3, minScaleValue: 15, maxScaleValue: 120, step: 5, handleNumber: 1},]; 
+  }
+  
+  addSlider(min = 0, max = 100, step = 1) {
     let slider = {
-      idNum: idNum,
+      idNum: this.sliders.length > 0 ? this.sliders[this.sliders.length - 1].idNum + 1 : 1,
       minScaleValue: min,
       maxScaleValue: max,
       step: step,
     }
 
     this.sliders.push(slider);
-  }
+  };
 
   findSliderById(idNum) {
     let slider = this.sliders.find(item => item.idNum == idNum);
     return slider;
-  }
+  };
 
   getMinScaleValue(idNum) {
     return findSliderById(idNum).minScaleValue;
-  }
+  };
   getMaxScaleValue(idNum) {
     return findSliderById(idNum).maxScaleValue;
-  }
+  };
   getStep(idNum) {
     return findSliderById(idNum).step;
-  }
+  };
+  getHandleNumberValue(idNum) {
+    return findSliderById(idNum).handleNumber;
+  };
 
   setMinScaleValue(idNum, newMin) {
     this.findSliderById(idNum).minScaleValue = newMin;
@@ -43,20 +64,101 @@ class SliderModel {
   setStep(idNum, newStep) {
     this.findSliderById(idNum).step = newStep;
   }
-
+  setHandleNumberValue(idNum, newNumber) {
+    this.findSliderById(idNum).handleNumber = newNumber;
+  }
   deleteSlider() {}
 }
 
 
-
-
-
-
-
-class SliderView {
-  constructor(model) {
+class SliderController {
+  constructor(model, view) {
     this.model = model;
-    this.model.sliders.forEach(item => this.createSliderInterface (item.idNum));
+    this.view = view;
+
+
+
+    this.view.displaySliders(this.model.sliders);
+    let that = this;
+
+    this.observer = new this.createObserver(function (info) {
+      console.log(info);
+        if (info.elemId.includes('minInput')) {
+          that.changeMinValue(info.idNum, info.newValue);
+        } else if (info.elemId.includes('maxInput')) {
+          that.changeMaxValue(info.idNum, info.newValue);
+        } else if (info.elemId.includes('stepInput')) {
+          that.changeStepValue(info.idNum, info.newValue);
+        }
+        if (that.handleNumber != info.handleNum) {
+          that.changeHandleNumberValue(info.idNum, info.handleNum);
+        }
+
+        that.view.clear();
+        that.view.displaySliders(that.model.sliders);
+    });  
+
+    this.view.addObserver(this.observer);
+  }
+
+  createObserver = function (behavior) {
+    this.notify = function (info) {
+      behavior(info);
+    };
+  }
+
+  changeMinValue = (idNum, newValue) => {
+    this.model.setMinScaleValue(idNum, newValue);
+  }
+
+  changeMaxValue = (idNum, newValue) => {
+    this.model.setMaxScaleValue(idNum, newValue);
+  }
+
+  changeStepValue = (idNum, newValue) => {
+    this.model.setStep(idNum, newValue);
+  }
+
+  changeHandleNumberValue = (idNum, newValue) => {
+    this.model.setHandleNumberValue(idNum, newValue);
+  }
+}
+
+class SliderView extends Observable {
+  constructor(model) {
+    super();
+    this.model = model;
+  }
+
+  displaySliders (sliders) {   
+    sliders.forEach(item => this.createSliderInterface(item.idNum));
+  }
+
+  clear () {
+    for (let elem of document.querySelectorAll('.slider__mainContainer')) {
+      elem.remove();
+    }
+  }
+
+  renewScale (idNum, min, max, step) {
+    let that = this;
+    this.addHandleListener(idNum, min, max, step);
+    let scale = this.getElement('', 'slider__scale', idNum);
+    let handles = scale.children;
+    for (let handle of handles) {
+      this.addHandleListener.bind(handle, idNum, min, max, step);
+    }
+    // let oldSlider = this.getElement('', 'slider__mainContainer', idNum);
+    // let newSlider = this.createSliderInterface(idNum);
+    // let prevSibling = oldSlider.previousElementSibling;
+    // if (prevSibling) {
+    //   oldSlider.remove();
+    //   prevSibling.insertAdjacentElement("afterend", newSlider);
+    // } else {
+    //   let parentElement = oldSlider.parentElement;
+    //   oldSlider.remove();
+    //   parentElement.prepend(newSlider);
+    // }
   }
 
   createElement (tag, className, idNum) {
@@ -87,19 +189,21 @@ class SliderView {
   }
 
   createSliderInterface (idNum) {
+
     this.max = this.model.sliders[idNum - 1].maxScaleValue;
     this.min = this.model.sliders[idNum - 1].minScaleValue;
     this.step = this.model.sliders[idNum - 1].step;
+    this.startHandleNum = this.model.sliders[idNum - 1].handleNumber;
+    this.handleNum = 0;
 
-    
-
-    this.controlContainer = this.createElement("div", "slider__controlContainer", idNum);
+    this.controlContainer = this.createElement("div", "slider__mainContainer", idNum);
     document.body.append(this.controlContainer);
 
     this.controlElements = this.createElement("div", "slider__controlElements", idNum);
 
     this.valueCheckbox = this.createElement("input", "slider__valueCheckbox", idNum);
     this.valueCheckbox.type = "checkbox";
+    this.valueCheckbox.checked = true;
     this.checkboxLabel = this.createElement("label", "slider__valueCheckboxLabel", idNum);
     this.checkboxLabel.setAttribute('for', '' + this.valueCheckbox.id);
     this.checkboxLabel.innerHTML = "Показать значение над ползунком";
@@ -206,17 +310,16 @@ class SliderView {
 
     let that = this;
 
+    while (this.handleNum != this.startHandleNum) {
+      this.addSliderHandle(that, idNum);
+    }
+    
 
-    this.addSliderHandle(that, idNum);
-
-    // let sliderScale = this.sliderScale;
     let deleteAllHandlesButton = this.deleteAllHandlesButton;
     let radioVertical = this.viewRadioVertical;
     let radioHorizontal = this.viewRadioHorizontal;
     let mainDivId = this.mainDiv.id;
     let valueCheckbox = this.valueCheckbox;
-    
-
 
     this.addHandleButton.onclick = function () {
       let [, thisIdNum] =  this.id.split('-');
@@ -250,12 +353,51 @@ class SliderView {
       }
     }
 
+    this.maxInput.onchange = function () {
+      console.log('this,', this);
+      let [, thisIdNum] = this.id.split('-');
+      let info = {
+        elemId: this.id,
+        idNum: thisIdNum,
+        newValue: +this.value,
+        handleNum: that.handleNum,
+      }
+      if (+this.value) {
+        that.sendMessage(info);
+      }
+    };
+
+    this.minInput.onchange = function () {
+        console.log('this,', this);
+        let [, thisIdNum] = this.id.split('-');
+        let info = {
+          elemId: this.id,
+          idNum: thisIdNum,
+          newValue: +this.value,
+          handleNum: that.handleNum,
+        }
+        if (+this.value) {
+          that.sendMessage(info);
+        }
+    };
+
+    this.stepInput.onchange = function () {
+        console.log('this,', this);
+        let [, thisIdNum] = this.id.split('-');
+        let info = {
+          elemId: this.id,
+          idNum: thisIdNum,
+          newValue: +this.value,
+          handleNum: that.handleNum,
+        }
+        if (+this.value) {
+          that.sendMessage(info);
+        }
+      };
+      
   }
 
   addSliderHandle (that, idNum) {
-
-    // let sliderScaleId = '#slider__scale' + '-' + idNum;
-    // let sliderScale = document.querySelector(sliderScaleId);
 
     let sliderScale = this.getElement('', 'slider__scale', idNum);
 
@@ -267,7 +409,7 @@ class SliderView {
     sliderScale.append(that.sliderHandle);
     that.sliderHandle.append(that.sliderHandleLabel);
 
-    
+   
 
     if (!sliderScale.parentElement.previousElementSibling.firstElementChild.checked) {
       that.sliderHandleLabel.classList.add('hidden');
@@ -276,6 +418,11 @@ class SliderView {
     if (sliderScale.classList.contains("vertical")){
       that.sliderHandle.classList.add("vertical");
       that.sliderHandleLabel.classList.add("vertical");
+      if (that.sliderHandle.previousElementSibling){
+        that.sliderHandle.style.top = that.sliderHandle.previousElementSibling.style.top + 15 + 'px';
+      }
+    } else if (that.sliderHandle.previousElementSibling) {
+      that.sliderHandle.style.left = that.sliderHandle.previousElementSibling.style.left + 15 + 'px';
     }
 
     let handleControlContainer = sliderScale.parentElement.previousElementSibling.lastElementChild;
@@ -283,8 +430,9 @@ class SliderView {
     let max = that.model.sliders[idNum - 1].maxScaleValue;
     let min = that.model.sliders[idNum - 1].minScaleValue;
     let step = that.model.sliders[idNum - 1].step;
+    that.handleNum += 1;
     this.addHandleControl(handleControlContainer, that);
-    this.addHandleListener(this, idNum, min, max, step);
+    this.addHandleListener(idNum, min, max, step);
   }
 
   addHandleControl (handleControlContainer, that) {
@@ -322,48 +470,49 @@ class SliderView {
         newThat.deleteSliderHandle(idNumberBut, postfixBut);
       };
     }
-
-
-
   };
 
+
+  // getSliderInfo (that, idNum){
+  //   let sliderInfo = {
+  //     min: 0,
+  //     sliderMax = 
+  //   }
+  // }
     
-  addHandleListener (that, idNum, sliderMin, sliderMax, sliderStep) {
-      let slider = that.getElement( '', 'slider__scale', idNum),
-          handle = that.sliderHandle,
-          handleLabel = that.sliderHandleLabel,
-          handleField = that.handleValueField;
+  addHandleListener = (idNum, sliderMin, sliderMax, sliderStep) => {
+    let slider = this.getElement( '', 'slider__scale', idNum),
+        handle = this.sliderHandle,
+        handleLabel = this.sliderHandleLabel,
+        handleField = this.handleValueField;
 
+    let min = 0,
+        max = sliderMax - sliderMin,
+        valueMin = sliderMin,
+        step = sliderStep,
+        stepSize = 1,
+        shiftX;
 
-      let min = 0,
-          max = sliderMax - sliderMin,
-          valueMin = sliderMin,
-          step = sliderStep,
-          stepSize = 1,
-          shiftX;
+    handle.onmousedown = function(event) {
 
-      handle.onmousedown = function(event) {
+      let isVertical = handle.classList.contains("vertical");
 
-        let isVertical = handle.classList.contains("vertical");
-
-        event.preventDefault(); // предотвратить запуск выделения (действие браузера)
+      event.preventDefault(); // предотвратить запуск выделения (действие браузера)
       
-        if (isVertical) {
-          shiftX = event.clientY - handle.getBoundingClientRect().top;
-          console.log('handle', handle);
-        } else {
-          shiftX = event.clientX - handle.getBoundingClientRect().left;
-        }
+      if (isVertical) {
+        shiftX = event.clientY - handle.getBoundingClientRect().top;
+      } else {
+        shiftX = event.clientX - handle.getBoundingClientRect().left;
+      }
       
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
 
         let stepNumber = max / step; 
 
         stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
         if (isVertical) {
           stepSize = (slider.getBoundingClientRect().height - handle.getBoundingClientRect().height) / stepNumber;
-          console.log('stepSize isVertical', stepSize);
         }
 
         function onMouseMove(event) {
@@ -420,7 +569,7 @@ class SliderView {
 
           if (isVertical) {
             percent = (finCoord / slider.offsetHeight) * 100;  
-          } else {
+          } else { 
             percent = (finCoord /(slider.offsetWidth - handle.offsetWidth/2)) * 100;
           }
           
@@ -523,7 +672,7 @@ class SliderView {
 
     for (let i = newPostfix; i < parent.children.length; i++) {
       let thisChild = parent.children[i];
-      let [ , idNum, postf] = thisChild.id.split("-");
+      let [, idNum, postf] = thisChild.id.split("-");
       let newPostf = postf - 1;
       let newId = "#" + className + '-' + idNum + '-' + newPostf;
       thisChild.id = newId;
@@ -567,18 +716,14 @@ class SliderView {
 
 
 
-class SliderController {
-  constructor(model, view) {
-    this.model = model;
-    this.view = view;
-  }
-}
-
 
 
 
 const newModel = new SliderModel();
-const app = new SliderController(newModel, new SliderView(newModel));
+console.log(newModel);
+const newView = new SliderView(newModel);
+console.log(newView);
+const app = new SliderController(newModel, newView);
 
 
 
