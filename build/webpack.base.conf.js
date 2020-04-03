@@ -20,8 +20,9 @@ module.exports = {
     paths: PATHS
   },
   entry: {
-      app: PATHS.src
+      app: PATHS.src,
   },
+  devtool: 'inline-source-map',
   output: {
       filename: `${PATHS.assets}js/[name].[hash].js`,
       path: PATHS.dist,
@@ -38,6 +39,9 @@ module.exports = {
         }
       }
     }
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
   },
   module: {
       rules: [{
@@ -95,7 +99,12 @@ module.exports = {
           options: {
             name: '[name].[ext]'
           }
-        },   
+        }, 
+        {
+          test: /\.tsx?$/,
+          use: 'ts-loader',
+          exclude: /node_modules/,
+        }, 
     ]},
   plugins: [
     new MiniCssExtractPlugin ({
