@@ -2,136 +2,163 @@ import './index.css';
 "use strict";
 
 class Observable {
+  observers: any[];
+
   constructor() {
-    let that = this;
     this.observers = [];
-    this.sendMessage = function (msg) {
-      for (var i = 0, len = that.observers.length; i < len; i++) {
-        that.observers[i].notify(msg);
-      }
-    };
-    this.addObserver = function (observer) {
-      that.observers.push(observer);
-    };
   }  
+  sendMessage = function (msg: any) {
+    for (var i = 0, len = this.observers.length; i < len; i++) {
+      this.observers[i].notify(msg);
+    }
+  };
+  addObserver = function (observer: any) {
+    this.observers.push(observer);
+  };
 }
 
+class Observer {
+  notify: any;
+  constructor(behavior: any) {
+    this.notify = function (msg: any) {
+      behavior(msg);
+    };
+  }
+} 
 
 
-class SliderModel {
+
+class Model {
+
+  sliders: any[];
   
   constructor() {
-    this.sliders = [ {idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 2, handleNumber: 1},
+    this.sliders = [ {idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 10, handleNumber: 1},
                      {idNum: 2, minScaleValue: -50, maxScaleValue: 352, step: 1, handleNumber: 2},
                      {idNum: 3, minScaleValue: 15, maxScaleValue: 120, step: 5, handleNumber: 1},]; 
   }
   
-  addSlider(min = 0, max = 100, step = 1) {
+  addSlider(min: number = 0, max: number = 100, step: number = 1) {
     let slider = {
       idNum: this.sliders.length > 0 ? this.sliders[this.sliders.length - 1].idNum + 1 : 1,
       minScaleValue: min,
       maxScaleValue: max,
       step: step,
+      handleNumber: 1,
     }
 
     this.sliders.push(slider);
   };
 
-  findSliderById(idNum) {
+  findSliderById(idNum: number) {
     let slider = this.sliders.find(item => item.idNum == idNum);
     return slider;
   };
 
-  getMinScaleValue(idNum) {
-    return findSliderById(idNum).minScaleValue;
+  getMinScaleValue(idNum: number) {
+    return this.findSliderById(idNum).minScaleValue;
   };
-  getMaxScaleValue(idNum) {
-    return findSliderById(idNum).maxScaleValue;
+  getMaxScaleValue(idNum: number): number {
+    return +this.findSliderById(idNum).maxScaleValue;
   };
-  getStep(idNum) {
-    return findSliderById(idNum).step;
+  getStep(idNum: number): number {
+    return +this.findSliderById(idNum).step;
   };
-  getHandleNumberValue(idNum) {
-    return findSliderById(idNum).handleNumber;
+  getHandleNumberValue(idNum: number): number {
+    return +this.findSliderById(idNum).handleNumber;
   };
 
-  setMinScaleValue(idNum, newMin) {
+  setMinScaleValue(idNum: number, newMin: number) {
     this.findSliderById(idNum).minScaleValue = newMin;
   }
-  setMaxScaleValue(idNum, newMax) {
+  setMaxScaleValue(idNum: number, newMax: number) {
     this.findSliderById(idNum).maxScaleValue = newMax;
   }
-  setStep(idNum, newStep) {
+  setStep(idNum: number, newStep: number) {
     this.findSliderById(idNum).step = newStep;
   }
-  setHandleNumberValue(idNum, newNumber) {
+  setHandleNumberValue(idNum: number, newNumber: number) {
     this.findSliderById(idNum).handleNumber = newNumber;
   }
   deleteSlider() {}
 }
 
 
-class SliderController {
-  constructor(model, view) {
+class Controller{
+  model: any;
+  view: any;
+  notify: any;
+  observer: any;
+  constructor(model: any, view: any) {
     this.model = model;
     this.view = view;
-
-
-
     this.view.displaySliders(this.model.sliders);
+
     let that = this;
 
-    this.observer = new this.createObserver(function (info) {
+    this.observer = new Observer(function (info: any) {
       console.log(info);
-        if (info.elemId.includes('minInput')) {
-          that.changeMinValue(info.idNum, info.newValue);
-        } else if (info.elemId.includes('maxInput')) {
-          that.changeMaxValue(info.idNum, info.newValue);
-        } else if (info.elemId.includes('stepInput')) {
-          that.changeStepValue(info.idNum, info.newValue);
-        }
-        if (that.handleNumber != info.handleNum) {
-          that.changeHandleNumberValue(info.idNum, info.handleNum);
-        }
-
-        that.view.clear();
-        that.view.displaySliders(that.model.sliders);
-    });  
-
+      if (info.elemId.includes('minInput')) {
+        that.changeMinValue(info.idNum, info.newValue);
+      } else if (info.elemId.includes('maxInput')) {
+        that.changeMaxValue(info.idNum, info.newValue);
+      } else if (info.elemId.includes('stepInput')) {
+        that.changeStepValue(info.idNum, info.newValue);
+      }
+      let toggleValue = +that.model.getHandleNumberValue(info.idNum);
+      console.log("toggleValue", toggleValue, "\n", "info.handleNum", info.handleNum);
+      if (toggleValue != info.handleNum) {
+        that.changeHandleNumberValue(info.idNum, info.handleNum);
+      }
+      that.view.clear();
+      that.view.displaySliders(that.model.sliders);
+    });
     this.view.addObserver(this.observer);
   }
-
-  createObserver = function (behavior) {
-    this.notify = function (info) {
-      behavior(info);
-    };
-  }
-
-  changeMinValue = (idNum, newValue) => {
+   
+  changeMinValue = (idNum: number, newValue: number) => {
     this.model.setMinScaleValue(idNum, newValue);
   }
 
-  changeMaxValue = (idNum, newValue) => {
+  changeMaxValue = (idNum: number, newValue: number) => {
     this.model.setMaxScaleValue(idNum, newValue);
   }
 
-  changeStepValue = (idNum, newValue) => {
+  changeStepValue = (idNum: number, newValue: number) => {
     this.model.setStep(idNum, newValue);
   }
 
-  changeHandleNumberValue = (idNum, newValue) => {
+  changeHandleNumberValue = (idNum: number, newValue: number) => {
     this.model.setHandleNumberValue(idNum, newValue);
   }
 }
 
-class SliderView extends Observable {
-  constructor(model) {
+class View extends Observable {
+  model: any;
+  renderedSliders: Array<{
+    idNum: number,
+    mainContainerFullId: string
+  }>;
+
+  constructor(model: any) {
     super();
     this.model = model;
+    this.renderedSliders = [];
+    console.log(this.renderedSliders);
   }
 
-  displaySliders (sliders) {   
-    sliders.forEach(item => this.createSliderInterface(item.idNum));
+  displaySliders(sliders: any) {
+    for (let slider of sliders) {
+      let newSlider = new SliderInterface(slider);
+      newSlider.render(slider.idNum);
+
+      let newSliderInfo = {
+        idNum: +slider.idNum, 
+        mainContainerFullId: "#" + newSlider.mainContainer.id
+      }
+      this.renderedSliders.push(newSliderInfo);
+    }
+    this.createListeners();
   }
 
   clear () {
@@ -140,466 +167,417 @@ class SliderView extends Observable {
     }
   }
 
-  renewScale (idNum, min, max, step) {
-    let that = this;
-    this.addHandleListener(idNum, min, max, step);
-    let scale = this.getElement('', 'slider__scale', idNum);
-    let handles = scale.children;
-    for (let handle of handles) {
-      this.addHandleListener.bind(handle, idNum, min, max, step);
+  createListeners() {
+    for (let slider of this.renderedSliders) {
+      
+      let container = document.querySelector(slider.mainContainerFullId);
+      
+      let minInput = document.querySelector("#slider__minInput-" + slider.idNum);
+      let maxInput = document.querySelector("#slider__maxInput-" + slider.idNum);
+      let stepInput = document.querySelector("#slider__stepInput-" + slider.idNum);
+
+      let that = this;
+
+      minInput.addEventListener("change", function () {
+        let thisHTML = this as HTMLInputElement;
+        let handleNum = container.lastElementChild.firstElementChild.childElementCount;
+        let [, thisIdNum] = thisHTML.id.split('-');
+        let info = {
+          elemId: thisHTML.id,
+          idNum: thisIdNum,
+          newValue: +thisHTML.value,
+          handleNum: handleNum,
+        }
+        that.sendMessage(info);
+      });
+
+      maxInput.addEventListener("change", function () {
+        let thisHTML = this as HTMLInputElement;
+        let handleNum = container.lastElementChild.firstElementChild.childElementCount;
+        let [, thisIdNum] = thisHTML.id.split('-');
+        let info = {
+          elemId: thisHTML.id,
+          idNum: thisIdNum,
+          newValue: +thisHTML.value,
+          handleNum: handleNum,
+        }
+        that.sendMessage(info);
+      });
+
+      stepInput.addEventListener("change", function () {
+        let thisHTML = this as HTMLInputElement;
+        let handleNum = container.lastElementChild.firstElementChild.childElementCount;
+        let [, thisIdNum] = thisHTML.id.split('-');
+        let info = {
+          elemId: thisHTML.id,
+          idNum: thisIdNum,
+          newValue: +thisHTML.value,
+          handleNum: handleNum,
+        }
+        if (+thisHTML.value) {
+          that.sendMessage(info);
+        }
+      });
     }
-    // let oldSlider = this.getElement('', 'slider__mainContainer', idNum);
-    // let newSlider = this.createSliderInterface(idNum);
-    // let prevSibling = oldSlider.previousElementSibling;
-    // if (prevSibling) {
-    //   oldSlider.remove();
-    //   prevSibling.insertAdjacentElement("afterend", newSlider);
-    // } else {
-    //   let parentElement = oldSlider.parentElement;
-    //   oldSlider.remove();
-    //   parentElement.prepend(newSlider);
-    // }
+  }
+}
+
+class SliderInterface {
+  mainContainer: Element;
+  sliderInfo: {
+    idNum: number,
+    min: number,
+    max: number,
+    step: number,
+    handleNumber: number
+  };
+
+  constructor(sliderInfo: any) {
+    this.sliderInfo = {
+      idNum: sliderInfo.idNum,
+      min: sliderInfo.minScaleValue,
+      max: sliderInfo.maxScaleValue,
+      step: sliderInfo.step,
+      handleNumber: sliderInfo.handleNumber
+    };
   }
 
-  createElement (tag, className, idNum) {
-    if (!tag || !className) {
-      return;
-    }
-    let newElem = document.createElement(tag);
-    newElem.className = className; 
-    
-    if (idNum) {
-      newElem.id = className + '-' + idNum;
-    }
-    return newElem;
-  }
+  render(idNum: number, parent: Element | HTMLElement = document.body): void {
+    this.mainContainer = this.createElement("div", "slider__mainContainer", idNum);
+    parent.append(this.mainContainer);
+    let handleNum = 0;
 
-  getElement(selector, className, idNum, postfixNum) {
-    if (selector != '') {
-      const element = document.querySelector(selector);
-      return element;
-    } else if (className && idNum) {
-      let searchId = '#' + className + '-' + idNum;
-      if (postfixNum) {
-        searchId = searchId + '-' + postfixNum;
-      }
-      let element = document.querySelector(searchId);
-      return element;
-    } else return;
-  }
+    let controlElements = this.createElement("div", "slider__controlElements", idNum);
 
-  createSliderInterface (idNum) {
+    let valueCheckbox = this.createElement("input", "slider__valueCheckbox", idNum);
+    valueCheckbox.setAttribute("type", "checkbox");
+    valueCheckbox.setAttribute("checked", "true");
+    let checkboxLabel = this.createElement("label", "slider__valueCheckboxLabel", idNum);
+    checkboxLabel.setAttribute('for', '' + valueCheckbox.id);
+    checkboxLabel.innerHTML = "Показать значение над ползунком";
 
-    this.max = this.model.sliders[idNum - 1].maxScaleValue;
-    this.min = this.model.sliders[idNum - 1].minScaleValue;
-    this.step = this.model.sliders[idNum - 1].step;
-    this.startHandleNum = this.model.sliders[idNum - 1].handleNumber;
-    this.handleNum = 0;
+    let minMaxInputsContainer = this.createElement("div", "slider__minMaxInputsContainer", idNum);
 
-    this.controlContainer = this.createElement("div", "slider__mainContainer", idNum);
-    document.body.append(this.controlContainer);
-
-    this.controlElements = this.createElement("div", "slider__controlElements", idNum);
-
-    this.valueCheckbox = this.createElement("input", "slider__valueCheckbox", idNum);
-    this.valueCheckbox.type = "checkbox";
-    this.valueCheckbox.checked = true;
-    this.checkboxLabel = this.createElement("label", "slider__valueCheckboxLabel", idNum);
-    this.checkboxLabel.setAttribute('for', '' + this.valueCheckbox.id);
-    this.checkboxLabel.innerHTML = "Показать значение над ползунком";
-
-    //----------------------------------------------------------------------------
-    //------------------------ inputs for min and max ----------------------------
-    //----------------------------------------------------------------------------
-
-    this.minMaxInputsContainer = this.createElement("div", "slider__minMaxInputsContainer", idNum);
-
-    this.minInputLabel = this.createElement("div", "slider__minInputLabel", idNum);
-    this.minInputLabel.innerHTML = "Min:";
-    this.minInput = this.createElement("input", "slider__minInput", idNum);
-    this.minInput.type = "text";
-    this.minInput.setAttribute("placeholder", "" + this.min);
-    this.minInputLabel.setAttribute("for", "" + this.minInput.idNum);
+    let minInputLabel = this.createElement("div", "slider__minInputLabel", idNum);
+    minInputLabel.innerHTML = "Min:";
+    let minInput = this.createElement("input", "slider__minInput", idNum);
+    minInput.setAttribute("type", "text");
+    minInput.setAttribute("placeholder", "" + this.sliderInfo.min);
+    minInputLabel.setAttribute("for", "" + minInput.id);
 
 
-    this.maxInputLabel = this.createElement("div", "slider__maxInputLabel", idNum);
-    this.maxInputLabel.innerHTML = "Max:";
-    this.maxInput = this.createElement("input", "slider__maxInput", idNum);
-    this.maxInput.type = "text";
-    this.maxInput.setAttribute("placeholder", "" + this.max);
-    this.maxInputLabel.setAttribute("for", "" + this.maxInput.id);
+    let maxInputLabel = this.createElement("div", "slider__maxInputLabel", idNum);
+    maxInputLabel.innerHTML = "Max:";
+    let maxInput = this.createElement("input", "slider__maxInput", idNum);
+    maxInput.setAttribute("type", "text");
+    maxInput.setAttribute("placeholder", "" + this.sliderInfo.max);
+    maxInputLabel.setAttribute("for", "" + maxInput.id);
 
 
-    this.stepInputLabel = this.createElement("div", "slider__stepInputLabel", idNum);
-    this.stepInputLabel.innerHTML = "Шаг:";
-    this.stepInput = this.createElement("input", "slider__stepInput", idNum);
-    this.stepInput.type = "text";
-    this.stepInput.setAttribute("placeholder", "" + this.step);
-    this.stepInputLabel.setAttribute("for", "" + this.stepInput.id);
+    let stepInputLabel = this.createElement("div", "slider__stepInputLabel", idNum);
+    stepInputLabel.innerHTML = "Шаг:";
+    let stepInput = this.createElement("input", "slider__stepInput", idNum);
+    stepInput.setAttribute("type", "text");
+    stepInput.setAttribute("placeholder", "" + this.sliderInfo.step);
+    stepInputLabel.setAttribute("for", "" + stepInput.id);
 
     //---------------------------------------------------------------------------
     //-----------------------  view radiobuttons  -------------------------------
     //---------------------------------------------------------------------------
-      
-    this.viewRadioContainer = this.createElement("div", "slider__viewRadioContainer", idNum);
-    this.viewRadioCommonLabel = this.createElement("label", "slider__viewRadioCommonLabel", idNum);
-    this.viewRadioCommonLabel.innerHTML = "Вид слайдера:";
 
-    this.viewRadioHorizontal = this.createElement("input", "slider__viewRadio", "horizontal-" + idNum);
-    this.viewRadioHorizontal.type = "radio";
-    this.viewRadioHorizontal.name = "slider__viewRadio" + idNum;
-    this.viewRadioHorizontal.value = "horizontal";
-    this.viewRadioHorizontal.checked = true;
+    let viewRadioContainer = this.createElement("div", "slider__viewRadioContainer", idNum);
+    let viewRadioCommonLabel = this.createElement("label", "slider__viewRadioCommonLabel", idNum);
+    viewRadioCommonLabel.innerHTML = "Вид слайдера:";
 
-    this.viewRadioHorizontalLabel = this.createElement("label", "slider__viewRadioLabel", idNum);
-    this.viewRadioHorizontalLabel.setAttribute("for", "" + this.viewRadioHorizontal.id);
-    this.viewRadioHorizontalLabel.innerHTML = "Горизонтальный";
+    let viewRadioHorizontal = this.createElement("input", "slider__viewRadio", "horizontal-" + idNum);
+    viewRadioHorizontal.setAttribute("type", "radio");
+    viewRadioHorizontal.setAttribute("name", "slider__viewRadio" + idNum);
+    viewRadioHorizontal.setAttribute("value", "horizontal");
+    viewRadioHorizontal.setAttribute("checked", "true");
 
-    this.viewRadioVertical = this.createElement("input", "slider__viewRadio", "vertical-" + idNum);
-    this.viewRadioVertical.type = "radio";
-    this.viewRadioVertical.name = "slider__viewRadio" + idNum;
-    this.viewRadioHorizontal.value = "vertical";
+    let viewRadioHorizontalLabel = this.createElement("label", "slider__viewRadioLabel", idNum);
+    viewRadioHorizontalLabel.setAttribute("for", "" + viewRadioHorizontal.id);
+    viewRadioHorizontalLabel.innerHTML = "Горизонтальный";
 
-    this.viewRadioVerticalLabel = this.createElement("label", "slider__viewRadioLabel", idNum);
-    this.viewRadioVerticalLabel.setAttribute("for", "" + this.viewRadioVertical.id);
-    this.viewRadioVerticalLabel.innerHTML = "Вертикальный";
-
-  //-----------------------------------------------------------------------------
-
-    this.addHandleButton = this.createElement("button", "slider__addHandleButton", idNum);
-    this.addHandleButton.type = "button";
-    this.addHandleButton.innerHTML = "+";
-
-    this.deleteAllHandlesButton = this.createElement("button", "slider__deleteAllHandlesButton", idNum);
-    this.deleteAllHandlesButton.type = "button";
-    this.deleteAllHandlesButton.innerHTML = "- all";
-    this.deleteAllHandlesButton.classList.add('hidden');
-
-    this.handleControlContainer = this.createElement("div", "slider__handleControlContainer", idNum);
+    let viewRadioVertical = this.createElement("input", "slider__viewRadio", "vertical-" + idNum);
+    viewRadioVertical.setAttribute("type", "radio");
+    viewRadioVertical.setAttribute("name", "slider__viewRadio" + idNum);
+    viewRadioVertical.setAttribute("value", "vertical");
 
 
-    this.controlContainer.append(this.controlElements);
-    this.controlElements.append(this.valueCheckbox);
-    this.controlElements.append(this.checkboxLabel);
+    let viewRadioVerticalLabel = this.createElement("label", "slider__viewRadioLabel", idNum);
+    viewRadioVerticalLabel.setAttribute("for", "" + viewRadioVertical.id);
+    viewRadioVerticalLabel.innerHTML = "Вертикальный";
 
-    this.controlElements.append(this.minMaxInputsContainer);
-    this.minMaxInputsContainer.append(this.minInputLabel);
-    this.minMaxInputsContainer.append(this.minInput);
-    this.minMaxInputsContainer.append(this.maxInputLabel);
-    this.minMaxInputsContainer.append(this.maxInput);
+    //-----------------------------------------------------------------------------
 
-    this.controlElements.append(this.stepInputLabel);
-    this.controlElements.append(this.stepInput);
+    let addHandleButton = this.createElement("button", "slider__addHandleButton", idNum);
+    addHandleButton.setAttribute("type", "button");
+    addHandleButton.innerHTML = "+";
 
-    this.controlElements.append(this.viewRadioContainer);
-    this.viewRadioContainer.append(this.viewRadioCommonLabel);
-    this.viewRadioContainer.append(this.viewRadioHorizontal);
-    this.viewRadioContainer.append(this.viewRadioHorizontalLabel);
-    this.viewRadioContainer.append(this.viewRadioVertical);
-    this.viewRadioContainer.append(this.viewRadioVerticalLabel);
+    let deleteAllHandlesButton = this.createElement("button", "slider__deleteAllHandlesButton", idNum);
+    deleteAllHandlesButton.setAttribute("type", "button");
+    deleteAllHandlesButton.innerHTML = "- all";
+    deleteAllHandlesButton.classList.add('hidden');
 
-    this.controlElements.append(this.addHandleButton);
-    this.controlElements.append(this.deleteAllHandlesButton);
-    this.controlElements.append(this.handleControlContainer);
+    let handleControlContainer = this.createElement("div", "slider__handleControlContainer", idNum);
 
-    this.mainDiv = this.createElement("div", "slider__container", idNum);
-    this.sliderScale = this.createElement("div", "slider__scale", idNum);
+    this.mainContainer.append(controlElements);
+    controlElements.append(valueCheckbox);
+    controlElements.append(checkboxLabel);
 
-    this.controlContainer.append(this.mainDiv);
-    this.mainDiv.append(this.sliderScale);
+    controlElements.append(minMaxInputsContainer);
+    minMaxInputsContainer.append(minInputLabel);
+    minMaxInputsContainer.append(minInput);
+    minMaxInputsContainer.append(maxInputLabel);
+    minMaxInputsContainer.append(maxInput);
+
+    controlElements.append(stepInputLabel);
+    controlElements.append(stepInput);
+
+    controlElements.append(viewRadioContainer);
+    viewRadioContainer.append(viewRadioCommonLabel);
+    viewRadioContainer.append(viewRadioHorizontal);
+    viewRadioContainer.append(viewRadioHorizontalLabel);
+    viewRadioContainer.append(viewRadioVertical);
+    viewRadioContainer.append(viewRadioVerticalLabel);
+
+    controlElements.append(addHandleButton);
+    controlElements.append(deleteAllHandlesButton);
+    controlElements.append(handleControlContainer);
+
+    let mainDiv = this.createElement("div", "slider__container", idNum);
+    let sliderScale = this.createElement("div", "slider__scale", idNum);
+
+    this.mainContainer.append(mainDiv);
+    mainDiv.append(sliderScale);
+    // this.addToggle();
 
     let that = this;
 
-    while (this.handleNum != this.startHandleNum) {
-      this.addSliderHandle(that, idNum);
-    }
-    
-
-    let deleteAllHandlesButton = this.deleteAllHandlesButton;
-    let radioVertical = this.viewRadioVertical;
-    let radioHorizontal = this.viewRadioHorizontal;
-    let mainDivId = this.mainDiv.id;
-    let valueCheckbox = this.valueCheckbox;
-
-    this.addHandleButton.onclick = function () {
-      let [, thisIdNum] =  this.id.split('-');
-      console.log('this.id', this.id);
-      that.addSliderHandle(that, thisIdNum);
-      deleteAllHandlesButton.classList.remove('hidden');
-    };
-
-    this.deleteAllHandlesButton.onclick = function () {
-      that.removeAllHandles(idNum);
-      this.classList.add('hidden');
+    while (handleNum < this.sliderInfo.handleNumber) {
+      this.addToggle(sliderScale, handleControlContainer);
+      handleNum++;
     }
 
-    this.viewRadioHorizontal.onchange = function () {
-      if (radioHorizontal.checked) {
-        that.rotateSliderHorisontal(mainDivId);
-      }
-    }
-
-    this.viewRadioVertical.onchange = function () {
-       if (radioVertical.checked) {
-         that.rotateSliderVertical(mainDivId);
-       }
-    }
-
-    this.valueCheckbox.onchange = function () {
-      if (valueCheckbox.checked) {
-        that.showHandleLable(idNum, true);
+    valueCheckbox.addEventListener("change", function () {
+      if ((valueCheckbox as HTMLInputElement).checked) {
+        that.showToggleLables(idNum, true);
       } else {
-        that.showHandleLable(idNum, false);
+        that.showToggleLables(idNum, false);
       }
-    }
+    });
 
-    this.maxInput.onchange = function () {
-      console.log('this,', this);
-      let [, thisIdNum] = this.id.split('-');
-      let info = {
-        elemId: this.id,
-        idNum: thisIdNum,
-        newValue: +this.value,
-        handleNum: that.handleNum,
+    addHandleButton.addEventListener("click", function(e: MouseEvent) {
+      e.preventDefault();
+      that.addToggle(sliderScale, handleControlContainer);
+      deleteAllHandlesButton.classList.remove("hidden");
+    });
+
+    deleteAllHandlesButton.addEventListener("click", function () {
+      that.deleteAllToggles(idNum);
+      this.classList.add('hidden');
+    });
+
+    viewRadioVertical.addEventListener("change", function () {
+      if ((this as HTMLInputElement).checked ) {
+        that.rotateScaleVertical(mainDiv.id);
+      } 
+    });
+
+    viewRadioHorizontal.addEventListener("change", function () {
+      if ((viewRadioHorizontal as HTMLInputElement).checked) {
+        that.rotateScaleHorisontal(mainDiv.id);
       }
-      if (+this.value) {
-        that.sendMessage(info);
-      }
-    };
+    });
 
-    this.minInput.onchange = function () {
-        console.log('this,', this);
-        let [, thisIdNum] = this.id.split('-');
-        let info = {
-          elemId: this.id,
-          idNum: thisIdNum,
-          newValue: +this.value,
-          handleNum: that.handleNum,
-        }
-        if (+this.value) {
-          that.sendMessage(info);
-        }
-    };
-
-    this.stepInput.onchange = function () {
-        console.log('this,', this);
-        let [, thisIdNum] = this.id.split('-');
-        let info = {
-          elemId: this.id,
-          idNum: thisIdNum,
-          newValue: +this.value,
-          handleNum: that.handleNum,
-        }
-        if (+this.value) {
-          that.sendMessage(info);
-        }
-      };
-      
-  }
-
-  addSliderHandle (that, idNum) {
-
-    let sliderScale = this.getElement('', 'slider__scale', idNum);
-
-    let handleLabelNumber = sliderScale.children.length;
-    let handleIdPostfix = idNum + "-" + ++handleLabelNumber;
-    that.sliderHandle = this.createElement("div", "slider__handle", handleIdPostfix);
-    that.sliderHandleLabel = this.createElement("div", "slider__handleLabel", handleIdPostfix);
-
-    sliderScale.append(that.sliderHandle);
-    that.sliderHandle.append(that.sliderHandleLabel);
-
-   
-
-    if (!sliderScale.parentElement.previousElementSibling.firstElementChild.checked) {
-      that.sliderHandleLabel.classList.add('hidden');
-    }
-
-    if (sliderScale.classList.contains("vertical")){
-      that.sliderHandle.classList.add("vertical");
-      that.sliderHandleLabel.classList.add("vertical");
-      if (that.sliderHandle.previousElementSibling){
-        that.sliderHandle.style.top = that.sliderHandle.previousElementSibling.style.top + 15 + 'px';
-      }
-    } else if (that.sliderHandle.previousElementSibling) {
-      that.sliderHandle.style.left = that.sliderHandle.previousElementSibling.style.left + 15 + 'px';
-    }
-
-    let handleControlContainer = sliderScale.parentElement.previousElementSibling.lastElementChild;
-
-    let max = that.model.sliders[idNum - 1].maxScaleValue;
-    let min = that.model.sliders[idNum - 1].minScaleValue;
-    let step = that.model.sliders[idNum - 1].step;
-    that.handleNum += 1;
-    this.addHandleControl(handleControlContainer, that);
-    this.addHandleListener(idNum, min, max, step);
-  }
-
-  addHandleControl (handleControlContainer, that) {
-
-    let [ , idNumber, postfix] = that.sliderHandle.id.split("-");
-    let idPostfix = idNumber + '-' + postfix;
-
-    that.handleControl = this.createElement("div", "slider__handleControl", idPostfix);
-    handleControlContainer.append(that.handleControl);
-
-    that.handleValueFieldLabel = this.createElement("lable", "slider__handleValueFieldLabel", idPostfix);
-    that.handleValueFieldLabel.innerHTML = postfix + ": ";
-
-    that.handleValueField = this.createElement("input", "slider__handleValueField", idPostfix);
-    that.handleValueField.type = "text";
     
-    that.handleValueFieldLabel.setAttribute('for', '' + that.handleValueField.id);
-
-    that.handleControl.append(that.handleValueFieldLabel);
-    that.handleControl.append(that.handleValueField);
-
-    if (postfix > 1)  {
-
-      that.deleteHandleButton = this.createElement("button", "slider__deleteHandleButton", idPostfix);
-      that.deleteHandleButton.type = "button";
-      that.deleteHandleButton.innerHTML = "-";
-
-      that.handleControl.append(that.deleteHandleButton);
-
-      let newThat = this;
-
-      that.deleteHandleButton.onclick = function () {
-        let butId = $(this).attr("id");
-        let [ , idNumberBut, postfixBut] = butId.split("-");
-        newThat.deleteSliderHandle(idNumberBut, postfixBut);
-      };
-    }
   };
 
+  createElement(tag: string, className: string, idNum: number | string): Element {
+    if (!tag || !className) {
+      return;
+    }
+    let newElem = document.createElement(tag);
+    newElem.className = className;
 
-  // getSliderInfo (that, idNum){
-  //   let sliderInfo = {
-  //     min: 0,
-  //     sliderMax = 
-  //   }
-  // }
+    if (idNum) {
+      newElem.id = className + '-' + idNum;
+    }
+    return newElem;
+  };
+
+  addToggle(scale: Element, toggleControlContainer: Element): void {
+    let orderNumber = scale.childElementCount + 1;
+    let idPostfixFull = this.sliderInfo.idNum + '-' + (orderNumber);
+    let toggle = this.createElement("div", "slider__toggle", idPostfixFull);
+    let sliderToggleLabel = this.createElement("div", "slider__toggleLabel", idPostfixFull);
+    let that = this;
+
+
+
+    scale.append(toggle);
+    toggle.append(sliderToggleLabel);
+
+    let toggleControl = this.createElement("div", "slider__toggleControl", idPostfixFull);
+    toggleControlContainer.append(toggleControl);
+
+    let toggleValueFieldLabel = this.createElement("lable", "slider__toggleValueFieldLabel", idPostfixFull);
+    toggleValueFieldLabel.innerHTML = orderNumber + ": ";
+
+    let toggleValueField = this.createElement("input", "slider__toggleValueField", idPostfixFull);
+    toggleValueField.setAttribute("type", "text");
+    toggleValueFieldLabel.setAttribute('for', '' + toggleValueField.id);
+
+    toggleControl.append(toggleValueFieldLabel);
+    toggleControl.append(toggleValueField);
+
+    if (scale.classList.contains("vertical")){
+      toggle.classList.add("vertical");
+      sliderToggleLabel.classList.add("vertical");
+    } 
     
-  addHandleListener = (idNum, sliderMin, sliderMax, sliderStep) => {
-    let slider = this.getElement( '', 'slider__scale', idNum),
-        handle = this.sliderHandle,
-        handleLabel = this.sliderHandleLabel,
-        handleField = this.handleValueField;
+    
 
-    let min = 0,
-        max = sliderMax - sliderMin,
-        valueMin = sliderMin,
-        step = sliderStep,
-        stepSize = 1,
-        shiftX;
-
-    handle.onmousedown = function(event) {
-
-      let isVertical = handle.classList.contains("vertical");
-
-      event.preventDefault(); // предотвратить запуск выделения (действие браузера)
-      
-      if (isVertical) {
-        shiftX = event.clientY - handle.getBoundingClientRect().top;
-      } else {
-        shiftX = event.clientX - handle.getBoundingClientRect().left;
+    if (+orderNumber > 1)  {
+      if (scale.firstElementChild.firstElementChild.classList.contains("hidden")) {
+        toggle.firstElementChild.classList.add("hidden");
       }
-      
+      let deleteToggleButton = this.createElement("button", "slider__deleteToggleButton", idPostfixFull);
+      deleteToggleButton.setAttribute("type", "button");
+      deleteToggleButton.innerHTML = "-";
+      toggleControl.append(deleteToggleButton);
+
+      deleteToggleButton.addEventListener("click",  function() {
+        let butId = $(this).attr("id");
+        let [ , idNumberBut, postfixBut] = butId.split("-");
+        that.deleteToggle(idNumberBut, +postfixBut);
+      });
+    }
+
+    toggleValueField.addEventListener("change", function () {
+      that.chandeTogglePosition(this.value, (scale as HTMLElement), (toggle as HTMLElement));
+    });
+
+    this.addToggleDragAndDrop((scale as HTMLElement), (toggle as HTMLElement));
+  };
+
+  addToggleDragAndDrop (scale: HTMLElement, toggle: HTMLElement) {
+    let toggleField = toggle.parentElement.parentElement.previousElementSibling.lastElementChild.lastElementChild.firstChild.nextSibling as HTMLInputElement;
+    let toggleLabel = toggle.firstElementChild;
+    let min = 0,
+        max = this.sliderInfo.max - this.sliderInfo.min,
+        valueMin = this.sliderInfo.min,
+        step = this.sliderInfo.step,
+        stepSize = 1,
+        shiftX: number;
+
+    toggle.addEventListener('mousedown', function (event: MouseEvent) {
+      event.preventDefault(); // предотвратить запуск выделения (действие браузера)
+
+      let isVertical = toggle.classList.contains("vertical");
+      let stepNumber = max / step;
+
+      if (isVertical) {
+          shiftX = event.clientY - toggle.getBoundingClientRect().top;
+      } else {
+          shiftX = event.clientX - toggle.getBoundingClientRect().left;
+      }
+
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
 
-        let stepNumber = max / step; 
+      stepSize = Math.round((scale.offsetWidth - toggle.offsetWidth) / stepNumber);
+      if (isVertical) {
+        stepSize = (scale.getBoundingClientRect().height - toggle.getBoundingClientRect().height) / stepNumber;
+      }
 
-        stepSize = (slider.getBoundingClientRect().width - handle.getBoundingClientRect().width) / stepNumber;
-        if (isVertical) {
-          stepSize = (slider.getBoundingClientRect().height - handle.getBoundingClientRect().height) / stepNumber;
-        }
-
-        function onMouseMove(event) {
-          let newCoord, finishEdge;
+      function onMouseMove(event: MouseEvent) {
+          let newCoord: number, finishEdge: number;
 
           if (isVertical) {
-            finishEdge = slider.offsetHeight - handle.offsetHeight;
-            newCoord = event.clientY - shiftX - slider.getBoundingClientRect().top;
+            finishEdge = scale.offsetHeight - toggle.offsetHeight;
+            newCoord = event.clientY - shiftX - scale.getBoundingClientRect().top;
           } else {
-            newCoord = event.clientX - shiftX - slider.getBoundingClientRect().left;
-            finishEdge = slider.offsetWidth - handle.offsetWidth / 2;
-          }
-
-          
-          let nextSibling = handle.nextSibling;
-          let prevSibling = handle.previousElementSibling;
-
-          if (prevSibling && isVertical) {
-            min = prevSibling.getBoundingClientRect().bottom - slider.getBoundingClientRect().top;
-          } else if (prevSibling) {
-            min = prevSibling.getBoundingClientRect().right - slider.getBoundingClientRect().left;
+            newCoord = event.clientX - shiftX - scale.getBoundingClientRect().left;
+            finishEdge = scale.getBoundingClientRect().width - toggle.getBoundingClientRect().width / 2;
           }
 
 
-          if (nextSibling && isVertical) {
-            finishEdge = nextSibling.getBoundingClientRect().top - slider.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
-        } else if (nextSibling) {
-            finishEdge = nextSibling.getBoundingClientRect().left - slider.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
-        }
+          let nextSibling = toggle.nextElementSibling;
+          let prevSibling = toggle.previousElementSibling;
+
+            
+          if (prevSibling) {
+            min = prevSibling.getBoundingClientRect().right - scale.getBoundingClientRect().left;
+            if (isVertical) {
+              min = prevSibling.getBoundingClientRect().bottom - scale.getBoundingClientRect().top;
+            }
+          }
+          if (nextSibling) {
+              finishEdge = nextSibling.getBoundingClientRect().left - scale.getBoundingClientRect().left - nextSibling.getBoundingClientRect().width;
+            if (isVertical) {
+              finishEdge = nextSibling.getBoundingClientRect().top - scale.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
+            }
+          }
 
           // курсор вышел из слайдера => оставить бегунок в его границах.
-          
 
-          let finCoord = Math.round(newCoord / stepSize) * stepSize;
 
-          if (finCoord < min) {
-            finCoord = min;
-          }
+        let finCoord = Math.round(newCoord / stepSize) * stepSize;
 
-          if (finCoord > finishEdge) {
-            finCoord = finishEdge;
-          }
+            if (finCoord < min) {
+                finCoord = min;
+            }
 
-          if (isVertical) {
-            handle.style.top = finCoord + 'px';
-          } else {
-            handle.style.left = finCoord + 'px';
-          }
-      
-          //--------  расчет числа над ползунком  ---------------
-          //! шкала работает неправильно
+            if (finCoord > finishEdge) {
+              finCoord = finishEdge;
+            }
 
-          let percent;
+            if (isVertical) {
+                toggle.style.top = finCoord + 'px';
+            } else {
+                toggle.style.left = finCoord + 'px';
+            }
 
-          if (isVertical) {
-            percent = (finCoord / slider.offsetHeight) * 100;  
-          } else { 
-            percent = (finCoord /(slider.offsetWidth - handle.offsetWidth/2)) * 100;
-          }
-          
-          let val = Math.round((max * percent) /100 + valueMin);
-          handleLabel.innerHTML = val;
-          handleField.value = val;
-        };
-      
-        function onMouseUp() {
-          document.removeEventListener('mouseup', onMouseUp);
-          document.removeEventListener('mousemove', onMouseMove);
-        };
-      
+  //--------  расчет числа над ползунком  ---------------
+            //! шкала работает неправильно
+
+            let percent: number;
+
+            if (isVertical) {
+              percent = (finCoord / scale.offsetHeight) * 100;  
+            } else { 
+              percent = (finCoord / (scale.offsetWidth - toggle.offsetWidth/2)) * 100;
+            }
+
+           
+
+        let val = ((max * percent) / 100 + valueMin).toFixed(0);
+        toggleLabel.innerHTML = val;
+        toggleField.value = val;
       };
-      
-      handle.ondragstart = function() {
-        return false;
+      function onMouseUp() {
+        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('mousemove', onMouseMove);
       };
+    });
+
+    toggle.addEventListener("ondragstart" , function() {
+      return false;
+    });
   };
 
-  removeAllHandles (idNumber) {
+  deleteAllToggles(idNumber: number) {
     let sliderScaleId = "#slider__scale-" + idNumber;
     let sliderParent = document.querySelector(sliderScaleId);
 
     for (let i = sliderParent.children.length; i > 1; i--) {
-      this.deleteSliderHandle(idNumber, i, true);
+      this.deleteToggle(idNumber, i, true);
     }
   };
 
-  deleteSliderHandle(idNumber, postfix, isAll = false) {
+  deleteToggle(idNumber: number | string, postfix: number, isAll: boolean = false) {
 
     let handleControlContainerId = "#slider__handleControlContainer-" + idNumber;
     let sliderScaleId = "#slider__scale-" + idNumber;
@@ -608,64 +586,21 @@ class SliderView extends Observable {
     document.querySelector(handleControlContainerId).children[postfix-1].remove();
 
     if (postfix < document.querySelector(sliderScaleId).children.length + 1 && !isAll){
-      this.changePostfixes( sliderScaleId, 'slider__handle', postfix);
-      this.changePostfixes( handleControlContainerId, 'slider__handleControl', postfix);
+      this.changePostfixes( sliderScaleId, 'slider__toggle', postfix);
+      this.changePostfixes( handleControlContainerId, 'slider__toggleControl', postfix);
     }
   };
 
- 
+  //!ДОДЕЛАТЬ
+  chandeTogglePosition(newCoord: number | string, scale: HTMLElement, toggle: HTMLElement) {
 
-  rotateSliderVertical (containerId) {
-    let searchContainerId;
+    console.log("newCoord", newCoord, "\n", "scale", scale, "\n", "toggle", toggle);
 
-    if (containerId.includes("#")) {
-      searchContainerId = containerId;
-    } else {
-      searchContainerId = '#' + containerId;
-    }
 
-    if (!($(searchContainerId).hasClass("vertical"))) {
-      $(searchContainerId).addClass("vertical");
-      $(searchContainerId).children(".slider__scale").addClass("vertical");
-      let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
-    
-      for (let handle of handles) {
-        handle.classList.add("vertical");
-        let oldLeft = handle.style.left;
-        handle.style.left = -4 + "px";
-        handle.style.top = oldLeft;
-        let lable = handle.firstElementChild;
-        lable.classList.add("vertical");
-      }
-    }
-  };
 
-  rotateSliderHorisontal (containerId) {
-    let searchContainerId;
+  }
 
-    if (containerId.includes("#")) {
-      searchContainerId = containerId;
-    } else {
-      searchContainerId = '#' + containerId;
-    }
-
-    if ($(searchContainerId).hasClass("vertical")) {
-      $(searchContainerId).removeClass("vertical");
-      $(searchContainerId).children(".slider__scale").removeClass("vertical");
-      let handles = $(searchContainerId).children(".slider__scale").children(".slider__handle");
-
-      for (let handle of handles) {
-        handle.classList.remove("vertical");
-        let oldTop = handle.style.top;
-        handle.style.top = -5 + "px";
-        handle.style.left = oldTop;
-        let lable = handle.firstElementChild;
-        lable.classList.remove("vertical");
-      }
-    }
-  };
-
-  changePostfixes(parentId, className, deletedPostfix) {
+  changePostfixes(parentId: string, className: string, deletedPostfix: number) {
 
     let newPostfix = deletedPostfix - 1;
     let parent = document.querySelector(parentId);
@@ -673,7 +608,7 @@ class SliderView extends Observable {
     for (let i = newPostfix; i < parent.children.length; i++) {
       let thisChild = parent.children[i];
       let [, idNum, postf] = thisChild.id.split("-");
-      let newPostf = postf - 1;
+      let newPostf = +postf - 1;
       let newId = "#" + className + '-' + idNum + '-' + newPostf;
       thisChild.id = newId;
 
@@ -696,12 +631,59 @@ class SliderView extends Observable {
     }
     return;
   };
+ 
+  rotateScaleVertical (containerId: string) {
+    let searchContainerId: string = containerId;
 
-  showHandleLable(idNum, isToShow) {
-    let parentSlider = this.getElement('', 'slider__scale', idNum);
+    if (!containerId.includes("#")) {
+      searchContainerId = '#' + containerId;
+    }
+    if (!($(searchContainerId).hasClass("vertical"))) {
+      $(searchContainerId).addClass("vertical");
+      $(searchContainerId).children(".slider__scale").addClass("vertical");
+      let handles = $(searchContainerId).children(".slider__scale").children(".slider__toggle");
+
+      for (let handle of handles) {
+        handle.classList.add("vertical");
+        let oldLeft = handle.style.left;
+        handle.style.left = -4 + "px";
+        handle.style.top = oldLeft;
+        let lable = handle.firstElementChild;
+        lable.classList.add("vertical");
+      }
+    }
+  };
+
+  rotateScaleHorisontal(containerId: string) {
+    let searchContainerId: string = containerId;
+
+    if (!containerId.includes("#")) {
+      searchContainerId = '#' + containerId;
+    } 
+
+    if ($(searchContainerId).hasClass("vertical")) {
+      $(searchContainerId).removeClass("vertical");
+      $(searchContainerId).children(".slider__scale").removeClass("vertical");
+      let handles = $(searchContainerId).children(".slider__scale").children(".slider__toggle");
+
+      for (let handle of handles) {
+        handle.classList.remove("vertical");
+        let oldTop = handle.style.top;
+        handle.style.top = -5 + "px";
+        handle.style.left = oldTop;
+        let lable = handle.firstElementChild;
+        lable.classList.remove("vertical");
+      }
+    }
+
+  };
+
+  showToggleLables(idNum: number, isToShow: boolean) {
+
+    let parentSlider = document.querySelector("#slider__scale-" + idNum);
     let handles = Array.prototype.slice.call(parentSlider.children);
 
-    handles.forEach(item => {
+    for (let item of handles) {
       if (isToShow) {
         if (item.firstElementChild.classList.contains("hidden")){
           item.firstElementChild.classList.remove("hidden");
@@ -709,66 +691,40 @@ class SliderView extends Observable {
       } else if (!item.firstElementChild.classList.contains("hidden")) {
         item.firstElementChild.classList.add("hidden");
       }
-    })
+    }
   };
 
-}
+};
 
 
 
 
 
 
-const newModel = new SliderModel();
+
+//   renewScale(idNum: number, min: number, max: number, step: number) {
+//     let that = this;
+//     this.addHandleListener(idNum, min, max, step);
+//     let scale = this.getElement('', 'slider__scale', idNum);
+//     let handles = scale.children;
+//     for (let handle of handles) {
+//       this.addHandleListener.bind(handle, idNum, min, max, step);
+//     }
+    // let oldSlider = this.getElement('', 'slider__mainContainer', idNum);
+    // let newSlider = this.createSliderInterface(idNum);
+    // let prevSibling = oldSlider.previousElementSibling;
+    // if (prevSibling) {
+    //   oldSlider.remove();
+    //   prevSibling.insertAdjacentElement("afterend", newSlider);
+    // } else {
+    //   let parentElement = oldSlider.parentElement;
+    //   oldSlider.remove();
+    //   parentElement.prepend(newSlider);
+    // }
+//   }
+
+const newModel = new Model();
 console.log(newModel);
-const newView = new SliderView(newModel);
+const newView = new View(newModel);
 console.log(newView);
-const app = new SliderController(newModel, newView);
-
-
-
-// function addSliderWithControl (id, min, max, step = 1) {
-
-//   minInput.onchange = function () {
-//     let newMin = +this.value;
-//     setMinValue(sliderIndex, newMin);
-//   };
-
-//   maxInput.onchange = function () {
-//     let newMax = +this.value;
-//     setMaxValue(sliderIndex, newMax);
-//   };
-
-//   stepInput.onchange = function () {
-//     let newStep = +this.value;
-//     setStepValue(sliderIndex, newStep);
-//   };
-
-// };
-
-// //!_----------------------------------------------------------------------------
-// //!-----------------------------------------------------------------------------
-// //!-----------------------------------------------------------------------------
-
-// function setMinValue (index, newMin) {
-//   sliders[index].minScaleValue = newMin;
-// };
-
-// function setMaxValue (index, newMax) {
-//   sliders[index].maxScaleValue = newMax;
-// };
-
-// function setStepValue (index, newStep) {
-//   sliders[index].step = newStep;
-// };
-
-
-// //!_----------------------------------------------------------------------------
-// //!-----------------------------------------------------------------------------
-// //!-----------------------------------------------------------------------------
-
-
-
-
-
-
+const app = new Controller(newModel, newView);

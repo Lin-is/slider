@@ -30,7 +30,7 @@ h1 {
     border-bottom-left-radius: 10px;
     padding: 10px;
 }
-.slider__handleControl {
+.slider__toggleControl {
     display: flex;
     flex-direction: row;
     margin-top: 5px;
@@ -39,14 +39,14 @@ h1 {
     justify-content: start;
 }
 
-.slider__handleValueFieldLabel {
+.slider__toggleValueFieldLabel {
     display: inline-block;
     width: 10px;
     margin-left: 5px;
     margin-right: 5px;
 }
 
-.slider__handleValueField {
+.slider__toggleValueField {
     width: 70%;
     margin-right: 5px;
     margin-left: 5px;
@@ -75,7 +75,7 @@ h1 {
     align-items: center;
 }
 
-.slider__handle {
+.slider__toggle {
     position: absolute;
     display: none;
     top: -5px;
@@ -89,7 +89,7 @@ h1 {
     justify-content: flex-end;
 }
 
-.slider__handle::before {
+.slider__toggle::before {
     content: '';
     display: flex;
     /* left: 0px; */
@@ -101,7 +101,7 @@ h1 {
  
 }
 
-.slider__handleLabel {
+.slider__toggleLabel {
     position: absolute;
     text-align: center;
     width: 40px; 
@@ -120,7 +120,7 @@ h1 {
     height: 0px;
 }
 
-.slider__handle.vertical {
+.slider__toggle.vertical {
     transform: rotate(90deg);
     justify-content: center;
 }
@@ -135,7 +135,7 @@ h1 {
     width: 100px;
 }
 
-.slider__handleLabel.vertical {
+.slider__toggleLabel.vertical {
     left: -11px;
     top: -40px;
     transform: rotate(-90deg);
