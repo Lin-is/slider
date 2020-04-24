@@ -26,8 +26,6 @@ class Observer {
   }
 } 
 
-
-
 class Model {
 
   sliders: any[];
@@ -46,10 +44,8 @@ class Model {
       step: step,
       handleNumber: 1,
     }
-
     this.sliders.push(slider);
   };
-
   findSliderById(idNum: number) {
     let slider = this.sliders.find(item => item.idNum == idNum);
     return slider;
@@ -83,12 +79,12 @@ class Model {
   deleteSlider() {}
 }
 
-
-class Controller{
+class Controller {
   model: any;
   view: any;
   notify: any;
   observer: any;
+
   constructor(model: any, view: any) {
     this.model = model;
     this.view = view;
@@ -97,7 +93,6 @@ class Controller{
     let that = this;
 
     this.observer = new Observer(function (info: any) {
-      console.log(info);
       if (info.elemId.includes('minInput')) {
         that.changeMinValue(info.idNum, info.newValue);
       } else if (info.elemId.includes('maxInput')) {
@@ -106,28 +101,25 @@ class Controller{
         that.changeStepValue(info.idNum, info.newValue);
       }
       let toggleValue = +that.model.getHandleNumberValue(info.idNum);
-      console.log("toggleValue", toggleValue, "\n", "info.handleNum", info.handleNum);
       if (toggleValue != info.handleNum) {
         that.changeHandleNumberValue(info.idNum, info.handleNum);
       }
       that.view.clear();
       that.view.displaySliders(that.model.sliders);
     });
+
     this.view.addObserver(this.observer);
   }
-   
+
   changeMinValue = (idNum: number, newValue: number) => {
     this.model.setMinScaleValue(idNum, newValue);
   }
-
   changeMaxValue = (idNum: number, newValue: number) => {
     this.model.setMaxScaleValue(idNum, newValue);
   }
-
   changeStepValue = (idNum: number, newValue: number) => {
     this.model.setStep(idNum, newValue);
   }
-
   changeHandleNumberValue = (idNum: number, newValue: number) => {
     this.model.setHandleNumberValue(idNum, newValue);
   }
@@ -171,7 +163,6 @@ class View extends Observable {
     for (let slider of this.renderedSliders) {
       
       let container = document.querySelector(slider.mainContainerFullId);
-      
       let minInput = document.querySelector("#slider__minInput-" + slider.idNum);
       let maxInput = document.querySelector("#slider__maxInput-" + slider.idNum);
       let stepInput = document.querySelector("#slider__stepInput-" + slider.idNum);
@@ -351,7 +342,6 @@ class SliderInterface {
 
     this.mainContainer.append(mainDiv);
     mainDiv.append(sliderScale);
-    // this.addToggle();
 
     let that = this;
 
@@ -393,7 +383,6 @@ class SliderInterface {
 
     
   };
-
   createElement(tag: string, className: string, idNum: number | string): Element {
     if (!tag || !className) {
       return;
@@ -413,8 +402,6 @@ class SliderInterface {
     let toggle = this.createElement("div", "slider__toggle", idPostfixFull);
     let sliderToggleLabel = this.createElement("div", "slider__toggleLabel", idPostfixFull);
     let that = this;
-
-
 
     scale.append(toggle);
     toggle.append(sliderToggleLabel);
@@ -436,9 +423,7 @@ class SliderInterface {
       toggle.classList.add("vertical");
       sliderToggleLabel.classList.add("vertical");
     } 
-    
-    
-
+  
     if (+orderNumber > 1)  {
       if (scale.firstElementChild.firstElementChild.classList.contains("hidden")) {
         toggle.firstElementChild.classList.add("hidden");
@@ -461,7 +446,6 @@ class SliderInterface {
 
     this.addToggleDragAndDrop((scale as HTMLElement), (toggle as HTMLElement));
   };
-
   addToggleDragAndDrop (scale: HTMLElement, toggle: HTMLElement) {
     let toggleField = toggle.parentElement.parentElement.previousElementSibling.lastElementChild.lastElementChild.firstChild.nextSibling as HTMLInputElement;
     let toggleLabel = toggle.firstElementChild;
@@ -473,7 +457,7 @@ class SliderInterface {
         shiftX: number;
 
     toggle.addEventListener('mousedown', function (event: MouseEvent) {
-      event.preventDefault(); // предотвратить запуск выделения (действие браузера)
+      event.preventDefault(); 
 
       let isVertical = toggle.classList.contains("vertical");
       let stepNumber = max / step;
@@ -500,14 +484,12 @@ class SliderInterface {
             newCoord = event.clientY - shiftX - scale.getBoundingClientRect().top;
           } else {
             newCoord = event.clientX - shiftX - scale.getBoundingClientRect().left;
-            finishEdge = scale.getBoundingClientRect().width - toggle.getBoundingClientRect().width / 2;
+            finishEdge = scale.getBoundingClientRect().width - toggle.getBoundingClientRect().width;
           }
-
 
           let nextSibling = toggle.nextElementSibling;
           let prevSibling = toggle.previousElementSibling;
 
-            
           if (prevSibling) {
             min = prevSibling.getBoundingClientRect().right - scale.getBoundingClientRect().left;
             if (isVertical) {
@@ -520,9 +502,6 @@ class SliderInterface {
               finishEdge = nextSibling.getBoundingClientRect().top - scale.getBoundingClientRect().top - nextSibling.getBoundingClientRect().height;
             }
           }
-
-          // курсор вышел из слайдера => оставить бегунок в его границах.
-
 
         let finCoord = Math.round(newCoord / stepSize) * stepSize;
 
@@ -543,19 +522,16 @@ class SliderInterface {
   //--------  расчет числа над ползунком  ---------------
             //! шкала работает неправильно
 
-            let percent: number;
+            let val: number;
 
             if (isVertical) {
-              percent = (finCoord / scale.offsetHeight) * 100;  
+              val = Math.round(((finCoord * max) / (scale.offsetHeight - toggle.offsetHeight)) + valueMin);  
             } else { 
-              percent = (finCoord / (scale.offsetWidth - toggle.offsetWidth/2)) * 100;
+              val = Math.round(((finCoord * max) / (scale.offsetWidth - toggle.offsetWidth)) + valueMin);
             }
 
-           
-
-        let val = ((max * percent) / 100 + valueMin).toFixed(0);
-        toggleLabel.innerHTML = val;
-        toggleField.value = val;
+        toggleLabel.innerHTML = val + "";
+        toggleField.value = val + "";
       };
       function onMouseUp() {
         document.removeEventListener('mouseup', onMouseUp);
@@ -567,7 +543,6 @@ class SliderInterface {
       return false;
     });
   };
-
   deleteAllToggles(idNumber: number) {
     let sliderScaleId = "#slider__scale-" + idNumber;
     let sliderParent = document.querySelector(sliderScaleId);
@@ -576,7 +551,6 @@ class SliderInterface {
       this.deleteToggle(idNumber, i, true);
     }
   };
-
   deleteToggle(idNumber: number | string, postfix: number, isAll: boolean = false) {
 
     let handleControlContainerId = "#slider__handleControlContainer-" + idNumber;
@@ -590,14 +564,33 @@ class SliderInterface {
       this.changePostfixes( handleControlContainerId, 'slider__toggleControl', postfix);
     }
   };
-
-  //!ДОДЕЛАТЬ
   chandeTogglePosition(newCoord: number | string, scale: HTMLElement, toggle: HTMLElement) {
 
-    console.log("newCoord", newCoord, "\n", "scale", scale, "\n", "toggle", toggle);
+    let scaleSize = scale.offsetWidth;
+    let toggleSize = toggle.offsetWidth;
 
+    if (toggle.classList.contains("vertical")) {
+      scaleSize = scale.offsetHeight;
+      toggleSize = toggle.offsetHeight;
+    }
+    
+    let toggleNewPosition = ( (+newCoord - this.sliderInfo.min) * (scaleSize - toggleSize) ) / ( this.sliderInfo.max - this.sliderInfo.min );
 
+    if (toggleNewPosition > scaleSize - toggleSize / 2){
+      toggleNewPosition = scaleSize - toggleSize / 2;
+      newCoord = this.sliderInfo.max;
+    }
+    if (toggleNewPosition < 0) {
+      toggleNewPosition = 0;
+      newCoord = this.sliderInfo.min;
+    }
 
+    if (toggle.classList.contains("vertical")) {
+      toggle.style.top = toggleNewPosition + "px"
+    } else {
+      toggle.style.left = toggleNewPosition + "px";
+    }
+    toggle.firstElementChild.textContent = "" + newCoord;
   }
 
   changePostfixes(parentId: string, className: string, deletedPostfix: number) {
@@ -653,7 +646,6 @@ class SliderInterface {
       }
     }
   };
-
   rotateScaleHorisontal(containerId: string) {
     let searchContainerId: string = containerId;
 
@@ -696,12 +688,6 @@ class SliderInterface {
 
 };
 
-
-
-
-
-
-
 //   renewScale(idNum: number, min: number, max: number, step: number) {
 //     let that = this;
 //     this.addHandleListener(idNum, min, max, step);
@@ -727,4 +713,4 @@ const newModel = new Model();
 console.log(newModel);
 const newView = new View(newModel);
 console.log(newView);
-const app = new Controller(newModel, newView);
+const app = new Controller(newModel, newView); 
