@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+let isDevMode = 'production' !== process.env.NODE_ENV;
 
 const PATHS = {
   src: path.join(__dirname, '../src'),
@@ -68,8 +69,7 @@ module.exports = {
         {
           test: /\.scss$/,
           use: [
-            'style-loader',
-            MiniCssExtractPlugin.loader,
+            isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader, 'css-loader',
             {
               loader: 'css-loader',
               options: { sourceMap: true }
@@ -106,7 +106,8 @@ module.exports = {
           exclude: /node_modules/,
         }, 
     ]},
-  plugins: [
+  plugins: 
+  [
     new MiniCssExtractPlugin ({
         filename: `${PATHS.assets}css/[name].[contenthash].css`
     }),
