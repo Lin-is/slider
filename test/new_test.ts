@@ -1,9 +1,9 @@
-import { SliderInterface } from '../src/slider'
-import { Observer } from '../src/slider'
-import { Observable } from '../src/slider'
-import { Model } from '../src/slider'
-import { Controller } from '../src/slider'
-import { View } from '../src/slider'
+import { SliderInterface } from '../src/index'
+import { Observer } from '../src/index'
+import { Observable } from '../src/index'
+import { Model } from '../src/index'
+import { Controller } from '../src/index'
+import { View } from '../src/index'
 
 describe('SliderInterface', () => {
     it('can create', () => {
@@ -25,3 +25,12 @@ describe ('Observable', () => {
 
     });
 });
+
+describe ('View', () => {
+    it('can create', () => {
+        let model = 'model';
+        const view: View = new View(model);
+        expect(view).not.toBe(null);
+    })
+})
+

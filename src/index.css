@@ -82,8 +82,6 @@ h1 {
     left: calc(50% - 10px);
     width: 20px;
     height: 20px;
-    /* background-color: rgb(238, 238, 238);
-    border: 3px solid  #424242; */
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -92,7 +90,6 @@ h1 {
 .slider__toggle::before {
     content: '';
     display: flex;
-    /* left: 0px; */
     width: 100%;
     height: 20px;
     border-radius: 50%;

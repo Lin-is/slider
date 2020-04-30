@@ -5,7 +5,6 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-let isDevMode = 'production' !== process.env.NODE_ENV;
 
 const PATHS = {
   src: path.join(__dirname, '../src'),
@@ -53,23 +52,24 @@ module.exports = {
         {
           test: /\.css$/,
           use: [
-              'style-loader',
-              MiniCssExtractPlugin.loader,
-              {
-                  loader: 'css-loader',
-                  options: { sourceMap: true }
-              }, 
-              {
-                  loader: 'postcss-loader',
-                  options: { sourceMap: true, config: { path: `./postcss.config.js` } 
-                }
-              }   
+              'style-loader', 'css-loader',
+              // MiniCssExtractPlugin.loader,
+              // {
+              //     loader: 'css-loader',
+              //     options: { sourceMap: true }
+              // }, 
+              // {
+              //     loader: 'postcss-loader',
+              //     options: { sourceMap: true, config: { path: `./postcss.config.js` } 
+              //   }
+              // }   
           ]
         },
         {
           test: /\.scss$/,
           use: [
-            isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader, 'css-loader',
+            'style-loader',
+            MiniCssExtractPlugin.loader,
             {
               loader: 'css-loader',
               options: { sourceMap: true }
@@ -105,6 +105,17 @@ module.exports = {
           use: 'ts-loader',
           exclude: /node_modules/,
         }, 
+        {
+          test: /\.ts$/,
+          exclude: [path.resolve(__dirname, "test"), /node_modules/],
+          enforce: 'post',
+          use: {
+            loader: 'istanbul-instrumenter-loader',
+            options: {
+              esModules: true
+            }
+          }
+        }
     ]},
   plugins: 
   [
