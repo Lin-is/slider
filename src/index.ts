@@ -41,8 +41,7 @@ class Model {
 
     constructor() {
         this.sliders = [{ idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 10, handleNumber: 1 },
-        { idNum: 2, minScaleValue: -50, maxScaleValue: 352, step: 1, handleNumber: 2 },
-        { idNum: 3, minScaleValue: 15, maxScaleValue: 120, step: 5, handleNumber: 1 },];
+            { idNum: 2, minScaleValue: -30, maxScaleValue: 200, step: 5, handleNumber: 2 }];
     }
 
     addSlider(min: number = 0, max: number = 100, step: number = 1) {
@@ -89,12 +88,12 @@ class Model {
 }
 
 class Controller {
-    model: any;
-    view: any;
+    model: Model;
+    view: View;
     notify: any;
-    observer: any;
+    observer: Observer;
 
-    constructor(model: any, view: any) {
+    constructor(model: Model, view: View) {
         this.model = model;
         this.view = view;
         this.view.displaySliders(this.model.sliders);
@@ -135,13 +134,13 @@ class Controller {
 }
 
 class View extends Observable {
-    model: any;
+    model: Model;
     renderedSliders: Array<{
         idNum: number,
         mainContainerFullId: string
     }>;
 
-    constructor(model: any) {
+    constructor(model: Model) {
         super();
         this.model = model;
         this.renderedSliders = [];
