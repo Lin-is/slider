@@ -41,6 +41,11 @@ module.exports = function (config) {
         browsers: ['Chrome'],
         singleRun: false,
         concurrency: Infinity,
+        client: {
+            jasmine: {
+                random: false
+            }
+        },
         coverageIstanbulReporter: {
             reports: ['text-summary'],
             dir: path.join(__dirname, 'coverage'),

@@ -1,13 +1,12 @@
 import './index.css'
 "use strict";
 
-
-export { SliderInterface };
-export { Observer };
 export { Observable };
+export { Observer };
 export { Model };
 export { Controller };
 export { View };
+export { SliderInterface };
 
 
 class Observable {
@@ -41,7 +40,7 @@ class Model {
 
     constructor() {
         this.sliders = [{ idNum: 1, minScaleValue: 0, maxScaleValue: 100, step: 10, handleNumber: 1 },
-            { idNum: 2, minScaleValue: -30, maxScaleValue: 200, step: 5, handleNumber: 2 }];
+        { idNum: 2, minScaleValue: -30, maxScaleValue: 200, step: 5, handleNumber: 2 }];
     }
 
     addSlider(min: number = 0, max: number = 100, step: number = 1) {
@@ -56,7 +55,15 @@ class Model {
     };
     findSliderById(idNum: number) {
         let slider = this.sliders.find(item => item.idNum == idNum);
-        return slider;
+        try {
+            if (slider !== undefined) {
+                return slider;
+            } else {
+                throw new Error("Slider not found");
+            }
+        } catch (e) {
+            console.log("Error: " + e.message);
+        }
     };
 
     getMinScaleValue(idNum: number) {
@@ -84,7 +91,6 @@ class Model {
     setHandleNumberValue(idNum: number, newNumber: number) {
         this.findSliderById(idNum).handleNumber = newNumber;
     }
-    deleteSlider() { }
 }
 
 class Controller {
@@ -97,25 +103,7 @@ class Controller {
         this.model = model;
         this.view = view;
         this.view.displaySliders(this.model.sliders);
-
-        let that = this;
-
-        this.observer = new Observer(function (info: any) {
-            if (info.elemId.includes('minInput')) {
-                that.changeMinValue(info.idNum, info.newValue);
-            } else if (info.elemId.includes('maxInput')) {
-                that.changeMaxValue(info.idNum, info.newValue);
-            } else if (info.elemId.includes('stepInput')) {
-                that.changeStepValue(info.idNum, info.newValue);
-            }
-            let toggleValue = +that.model.getHandleNumberValue(info.idNum);
-            if (toggleValue != info.handleNum) {
-                that.changeHandleNumberValue(info.idNum, info.handleNum);
-            }
-            that.view.clear();
-            that.view.displaySliders(that.model.sliders);
-        });
-
+        this.observer = new Observer(this.observerFunc.bind(this));
         this.view.addObserver(this.observer);
     }
 
@@ -130,6 +118,18 @@ class Controller {
     }
     changeHandleNumberValue = (idNum: number, newValue: number) => {
         this.model.setHandleNumberValue(idNum, newValue);
+    }
+
+    observerFunc(info: any) {
+        if (info.elemId.includes('minInput')) {
+            this.changeMinValue(info.idNum, info.newValue);
+        } else if (info.elemId.includes('maxInput')) {
+            this.changeMaxValue(info.idNum, info.newValue);
+        } else if (info.elemId.includes('stepInput')) {
+            this.changeStepValue(info.idNum, info.newValue);
+        }
+        this.view.clear();
+        this.view.displaySliders(this.model.sliders);
     }
 }
 
@@ -220,7 +220,6 @@ class View extends Observable {
         }
     }
 }
-
 
 class SliderInterface {
     mainContainer: Element;
