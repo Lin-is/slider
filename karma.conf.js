@@ -21,7 +21,7 @@ const webpackBaseConfig = require('./build/webpack.base.conf')
 module.exports = function (config) {
     config.set({
         basePath: '',
-        frameworks: ['jasmine'],
+        frameworks: ['jasmine-jquery', 'jasmine'],
         files: ['test/*.ts'],
         exclude: [],
         preprocessors: {

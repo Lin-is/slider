@@ -266,21 +266,50 @@ describe('Controller', () => {     //!
 
 
 describe ('View', () => {
-    let testSlider ={
-        idNum: 4,
-        minScaleValue: 3,
-        maxScaleValue: 145,
-        step: 1,
-        handleNumber: 1,
-    }
+    let view : View;
 
-    let testModel: Model = new Model();
+    beforeEach(() => {
+        let model: Model = jasmine.createSpyObj("Model", ['sliders', 'constructor', 'addSlider',
+            'getHandleNumberValue', 'setMinScaleValue', 'setMaxScaleValue',
+            'setStep', 'setHandleNumberValue']);
+            let newSlider: SliderInterface = jasmine.createSpyObj("SliderInterface", ['render']);
+        view = new View(model);
+    }) 
 
     it('can create', () => {
-        const view: View = new View(testModel);
         expect(view).not.toBe(null);
+        expect(view.model).not.toBe(undefined);
+        expect(view.renderedSliders).toEqual([]);
     });
+
+    describe('View can display sliders', () => {
+        it('it will render every slider in the array', () => {
+            let sliders = [{ idNum: 1, minScaleValue: 2, maxScaleValue: 150, step: 2, handleNumber: 1 },
+            { idNum: 2, minScaleValue: -10, maxScaleValue: 40, step: 1, handleNumber: 2 }];
+
+            view.displaySliders(sliders);
+
+            expect(view.renderedSliders.length).toEqual(sliders.length);
+
+        })
+    });
+
+    describe('View can remove all sliders', () => {
+        it('function clear() will remove every slider on the page', () => {
+            let allSliders = document.querySelectorAll('.slider__mainContainer');
+            expect(allSliders.length).not.toEqual(0);
+            
+            view.clear();
+
+            expect(document.querySelectorAll('.slider__mainContainer').length).toEqual(0);
+        });
+
+    });
+
+
     
+
+
 
 });
 

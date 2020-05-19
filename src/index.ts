@@ -144,7 +144,6 @@ class View extends Observable {
         super();
         this.model = model;
         this.renderedSliders = [];
-        console.log(this.renderedSliders);
     }
 
     displaySliders(sliders: any) {
@@ -177,34 +176,8 @@ class View extends Observable {
 
             let that = this;
 
-            minInput.addEventListener("change", function () {
-                let thisHTML = this as HTMLInputElement;
-                let handleNum = container.lastElementChild.firstElementChild.childElementCount;
-                let [, thisIdNum] = thisHTML.id.split('-');
-                let info = {
-                    elemId: thisHTML.id,
-                    idNum: thisIdNum,
-                    newValue: +thisHTML.value,
-                    handleNum: handleNum,
-                }
-                that.sendMessage(info);
-            });
-
-            maxInput.addEventListener("change", function () {
-                let thisHTML = this as HTMLInputElement;
-                let handleNum = container.lastElementChild.firstElementChild.childElementCount;
-                let [, thisIdNum] = thisHTML.id.split('-');
-                let info = {
-                    elemId: thisHTML.id,
-                    idNum: thisIdNum,
-                    newValue: +thisHTML.value,
-                    handleNum: handleNum,
-                }
-                that.sendMessage(info);
-            });
-
-            stepInput.addEventListener("change", function () {
-                let thisHTML = this as HTMLInputElement;
+            let inputListener = function () {
+                let thisHTML: HTMLInputElement = this as HTMLInputElement;
                 let handleNum = container.lastElementChild.firstElementChild.childElementCount;
                 let [, thisIdNum] = thisHTML.id.split('-');
                 let info = {
@@ -216,9 +189,15 @@ class View extends Observable {
                 if (+thisHTML.value) {
                     that.sendMessage(info);
                 }
-            });
+            }
+
+            minInput.addEventListener("change", inputListener);
+            maxInput.addEventListener("change", inputListener);
+            stepInput.addEventListener("change", inputListener);
         }
     }
+
+    
 }
 
 class SliderInterface {
