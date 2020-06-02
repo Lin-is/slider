@@ -675,6 +675,22 @@ class SliderInterface {
 
 };
 
+class Scale {
+    info: {
+        sliderID: number;
+    }
+     
+
+};
+
+class Toggle {
+    info: {
+        sliderID: number;
+        toggleNum: number;
+    }
+
+};
+
 
 const newModel = new Model();
 console.log(newModel);

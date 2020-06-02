@@ -291,7 +291,10 @@ describe ('View', () => {
 
             expect(view.renderedSliders.length).toEqual(sliders.length);
 
-        })
+        });
+        it('it will call function to add listeners for inputs', () => {
+            
+        });
     });
 
     describe('View can remove all sliders', () => {
