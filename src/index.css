@@ -10,6 +10,8 @@ h1 {
     color: #54c29d;
 }
 
+
+
 .slider__mainContainer {
     width: 70%;
     margin: 0px auto 50px;
@@ -54,7 +56,7 @@ h1 {
 }
 
 
-.slider__container {
+.slider__scaleContainer {
     width: 500px;
     height: 100px;
     display: flex;
@@ -136,4 +138,14 @@ h1 {
     left: -11px;
     top: -40px;
     transform: rotate(-90deg);
+}
+
+
+
+.pink {
+    background-color: #54c29d;
+}
+
+.purple {
+    background-color: #6f7dc0;
 }
