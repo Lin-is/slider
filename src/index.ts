@@ -179,8 +179,9 @@ class View extends Observable {
     };
 
     displaySlider() {  
-        this.connectInputsWithData();
-        this.addDragAndDrop();     
+        this.connectInputsWithData(); 
+        this.createTogglesControl();
+        this.addDragAndDrop();
     };
 
     clear() {
@@ -202,11 +203,41 @@ class View extends Observable {
     };
 
     addDragAndDrop() {
-        for (let toggleID of this.sliderInterface.toggles) {
+        for (let i = 0; i < this.sliderInterface.toggles.length; i++) {
+            let toggleID = this.sliderInterface.toggles[i];
             let toggle = document.getElementById(toggleID);
-            this.addToggleDragAndDrop((this.sliderInterface.scale.scale) as HTMLElement, toggle)
+            let input = document.getElementById(this.sliderInterface.controlPanel.toggleInputsContainerID).children[i].lastElementChild as HTMLInputElement;
+            this.addToggleDragAndDrop((this.sliderInterface.scale.scale) as HTMLElement, toggle, input);
         }
     };
+
+    createTogglesControl() {
+        for (let i = 0; i < this.sliderInterface.toggles.length; i++) {
+
+            let container = document.getElementById(this.sliderInterface.controlPanel.toggleInputsContainerID);
+            let idPostfix = this.sliderInterface.sliderInfo.idNum + "-" + (i + 1);
+
+            let toggleControl = document.createElement("div");
+            toggleControl.setAttribute("class","slider__toggleControl");
+            toggleControl.setAttribute("id", "slider__toggleControl-" + idPostfix);
+
+            let toggleValueFieldLabel = document.createElement("lable");
+            toggleValueFieldLabel.setAttribute("class", "slider__toggleValueFieldLabel");
+            toggleValueFieldLabel.setAttribute("id", "slider__toggleValueFieldLabel-" + idPostfix);
+            toggleValueFieldLabel.innerHTML = i + 1 + ": ";
+
+            let toggleValueField = document.createElement("input");
+            toggleValueField.setAttribute("class", "slider__toggleValueField");
+            toggleValueField.setAttribute("id", "slider__toggleValueField-" + idPostfix);
+            toggleValueField.setAttribute("type", "text");
+
+            toggleValueFieldLabel.setAttribute('for', '' + toggleValueField.id);
+
+            container.append(toggleControl);
+            toggleControl.append(toggleValueFieldLabel);
+            toggleControl.append(toggleValueField);
+        }
+    }
 
     createListeners() {
         let that = this;
@@ -256,7 +287,7 @@ class View extends Observable {
         this.sliderInterface.rotateSlider(false);
     }
 
-    addToggleDragAndDrop(scale: HTMLElement, toggle: HTMLElement) {
+    addToggleDragAndDrop(scale: HTMLElement, toggle: HTMLElement, input: HTMLInputElement) {
 
         let toggleLabel = toggle.firstElementChild;
         let that = this;
@@ -319,6 +350,8 @@ class View extends Observable {
                 let val: number;
                 val = Math.round(((newCoord * that.scaleInfo.scaleMax) / (coords.scaleSize - coords.togSize)) + that.scaleInfo.min);
                 toggleLabel.innerHTML = val + "";
+                input.value = val + "";
+              
         
             };
             function onMouseUp() {
@@ -413,15 +446,15 @@ class SliderInterface extends InterfaceElement  {
 
     render() {
         this.container = this.createElement("div", "slider__mainContainer", this.sliderInfo.idNum);
-
         this.scale = new Scale(this.sliderInfo.idNum);
+        this.controlPanel = new controlPanel(this.sliderInfo.idNum);
+        this.container.append(this.scale.container);
         for (let i = 0; i < this.sliderInfo.toggleNumber; i++) {
             this.addToggle(this.scale.scale, i + 1);
-        }  
-        this.container.append(this.scale.container); 
-
-        this.controlPanel = new controlPanel(this.sliderInfo.idNum);
+        } 
         this.container.append(this.controlPanel.container);
+        
+        
     };
 
     addToggle(parentElement: Element, index: number) {
@@ -441,6 +474,7 @@ class SliderInterface extends InterfaceElement  {
             }
         }
     };
+
 
     rotateSlider(toVertical: boolean) {
         let scaleContainer = document.getElementById(this.scale.container.getAttribute("id"));
@@ -591,13 +625,14 @@ class controlPanel extends InterfaceElement {
         addToggleButton.innerHTML = "+";
         this.addToggleButtonID = addToggleButton.getAttribute("id");
 
-        let deleteAllTogglesButton = this.createElement("button", "slider__deleteAllHandlesButton", this.idNum);
+        let deleteAllTogglesButton = this.createElement("button", "slider__deleteAllTogglesButton", this.idNum);
         deleteAllTogglesButton.setAttribute("type", "button");
         deleteAllTogglesButton.innerHTML = "- all";
         deleteAllTogglesButton.classList.add('hidden');
         this.deleteAllTogglesButtonID = deleteAllTogglesButton.getAttribute("id");
 
-        let toggleInputsContainer = this.createElement("div", "slider__handleControlContainer", this.idNum);
+        let toggleInputsContainer = this.createElement("div", "slider__toggleControlContainer", this.idNum);
+        this.toggleInputsContainerID = toggleInputsContainer.getAttribute("id");
 
         this.container.append(showToggleLabelsCheckbox);
         this.container.append(checkboxLabel);
