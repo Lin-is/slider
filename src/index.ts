@@ -58,10 +58,10 @@ class Model extends Observable{
         minScaleValue: number,
         maxScaleValue: number,
         step: number,
-        toggleNumber: number
+        isRange: boolean
     };
 
-    constructor(sliderData: {idNum: number, minScaleValue: number, maxScaleValue: number, step: number, toggleNumber: number}) {
+    constructor(sliderData: {idNum: number, minScaleValue: number, maxScaleValue: number, step: number, isRange: boolean}) {
         super();
         this.sliderData = sliderData; 
     }
@@ -75,8 +75,8 @@ class Model extends Observable{
     getStep(): number {
         return +this.sliderData.step;
     };
-    getToggleNumberValue(): number {
-        return +this.sliderData.toggleNumber;
+    getIsRangeInfo(): boolean {
+        return this.sliderData.isRange;
     };
 
     setMinScaleValue(newMin: number) {
@@ -91,9 +91,9 @@ class Model extends Observable{
         this.sliderData.step = newStep;
         this.sendMessage({"step": this.getStep()});
     }
-    setHandleNumberValue(newNumber: number) {
-        this.sliderData.toggleNumber = newNumber;
-        this.sendMessage({"togNum": this.getToggleNumberValue()});
+    setIsRangeInfo(newData: boolean) {
+        this.sliderData.isRange = newData;
+        this.sendMessage({ "isRange": this.getIsRangeInfo()});
     }
 }
 
@@ -127,8 +127,9 @@ class Controller {
     changeStepValue = (newValue: number) => {
         this.model.setStep(newValue);
     };
-    changeHandleNumberValue = (newValue: number) => {
-        this.model.setHandleNumberValue(newValue);
+    changeTogglesNumberValue = (newData: boolean) => {
+        this.model.setIsRangeInfo(newData);
+        this.view.updateTogglesWithControl();
     };
     observerViewFunc(info: any) {
         if (info.elemId.includes('min')) {
@@ -137,7 +138,10 @@ class Controller {
             this.changeMaxValue(info.newValue);
         } else if (info.elemId.includes('step')) {
             this.changeStepValue(info.newValue);
+        } else if (info.elemId.includes('RadioVal')) {
+            this.changeTogglesNumberValue(info.isRange);
         }
+
     };
     observerModelFunc(newValue: any){
         if ("min" in newValue) {
@@ -146,6 +150,8 @@ class Controller {
             this.view.scaleInfo.max = newValue.max;
         } else if ("step" in newValue) {
             this.view.scaleInfo.step = newValue.step;
+        } else if ("isRange" in newValue) {
+            this.view.sliderInterface.sliderInfo.isRange = newValue.isRange;
         }
         this.view.connectInputsWithData();
     };
@@ -182,12 +188,24 @@ class View extends Observable {
         this.connectInputsWithData(); 
         this.createTogglesControl();
         this.addDragAndDrop();
+        this.progressBarSetCoords();
     };
 
     clear() {
         this.sliderInterface.container.remove();
         this.sliderInterface.toggles = [];
     };
+
+    updateTogglesWithControl() {
+        this.sliderInterface.updateToggles();
+        
+        let container = document.getElementById(this.sliderInterface.controlPanel.toggleInputsContainerID);
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+        this.createTogglesControl();
+        this.addDragAndDrop();
+    }
 
     connectInputsWithData() {
         let maxInput = document.getElementById(this.sliderInterface.controlPanel.maxInputID);
@@ -247,7 +265,6 @@ class View extends Observable {
             let info = {
                 elemId: thisHTML.getAttribute("id"),
                 newValue: +thisHTML.value,
-                handleNum: that.sliderInterface.toggles.length,
             }
             if (+thisHTML.value) {
                 that.sendMessage(info);
@@ -263,12 +280,30 @@ class View extends Observable {
             }
         }
 
+        let isRangeListener = function() {
+            let thisHTML: HTMLInputElement = this as HTMLInputElement;
+            let info = {
+                elemId: thisHTML.getAttribute("id"),
+                isRange: true, 
+            }
+            if (thisHTML.value == "range" && !thisHTML.checked || thisHTML.value == "single" && thisHTML.checked) {
+                info.isRange = false;
+            }
+            that.sendMessage(info);
+                
+        }
+
         let minInput = document.getElementById(that.sliderInterface.controlPanel.minInputID);
         minInput.addEventListener("change", inputListener);
         let maxInput = document.getElementById(that.sliderInterface.controlPanel.maxInputID);
         maxInput.addEventListener("change", inputListener);
         let stepInput = document.getElementById(that.sliderInterface.controlPanel.stepInputID);
         stepInput.addEventListener("change", inputListener);
+
+        let isRangeRadio = document.getElementById(that.sliderInterface.controlPanel.isRangeValRadioID);
+        isRangeRadio.addEventListener("change", isRangeListener);
+        let isSingleRadio = document.getElementById(that.sliderInterface.controlPanel.isSingleValRadioID);
+        isSingleRadio.addEventListener("change", isRangeListener);
 
         let checkbox = document.getElementById(that.sliderInterface.controlPanel.showToggleLabelsCheckboxID);
         checkbox.addEventListener("click", checkboxListener);
@@ -282,12 +317,18 @@ class View extends Observable {
     rotateVertical() {
         this.sliderInterface.rotateSlider(true);
     }
-
     rotateHorizontal() {
         this.sliderInterface.rotateSlider(false);
     }
-
     addToggleDragAndDrop(scale: HTMLElement, toggle: HTMLElement, input: HTMLInputElement) {
+
+        let isRange = false;
+        let progressBar = document.getElementById(this.sliderInterface.progressBarId);
+
+
+        if (scale.children.length > 2) {
+            isRange = true;
+        } 
 
         let toggleLabel = toggle.firstElementChild;
         let that = this;
@@ -325,11 +366,11 @@ class View extends Observable {
                 newCoord = eventClient - shiftX - coords.scaleDistBord;
                 finishEdge = coords.scaleSize - coords.togSize;
 
-                if (toggle.previousElementSibling) {
-                    min = coords.prevSiblingBorder - coords.scaleDistBord;
+                if (toggle.previousElementSibling && isRange) {
+                    min = coords.prevToggleBorder - coords.scaleDistBord;
                 }
-                if (toggle.nextElementSibling) {
-                    finishEdge = coords.nextSiblingBorder - coords.scaleDistBord - coords.nextSiblingSize;
+                if (toggle.nextElementSibling && isRange) {
+                    finishEdge = coords.nextToggleBorder - coords.scaleDistBord - coords.nextToggleSize;
                 }
 
                 if (newCoord < min) {
@@ -338,11 +379,26 @@ class View extends Observable {
                 if (newCoord > finishEdge) {
                     newCoord = finishEdge;
                 }
-                if(isVertical) {
+                if (isVertical) {
                     toggle.style.top = newCoord + 'px'
+                    if (!isRange) {
+                        progressBar.style.height = newCoord + 'px';
+                        progressBar.style.top =  '0px'
+                        progressBar.style.width = '100%';
+                        progressBar.style.left = '0px';
+                    }
                 } else {
                     toggle.style.left = newCoord + 'px'
+                    if (!isRange) {
+                        progressBar.style.width = newCoord + 'px';
+                        progressBar.style.left = '0px';
+                        progressBar.style.height = '100%';
+                        progressBar.style.top = '0px'
+
+                    }
                 }
+
+
                 
 
                 //--------  расчет числа над ползунком  ---------------
@@ -366,6 +422,13 @@ class View extends Observable {
     };
 
     coordsForDragAndDrop(isVertical: boolean, scale: Element, toggle: Element) {
+
+        let isRange = false;
+
+        if (scale.childElementCount > 2) {
+            isRange = true;
+        }   
+
         let borderVals = {
             togDistBord: 0,
             togFirstBord: 0,
@@ -375,14 +438,19 @@ class View extends Observable {
             scaleFirstBord: 0,
             scaleSize: 0,
 
-            nextSiblingBorder: 0,
-            nextSiblingSize:0,
+            nextToggleBorder: 0,
+            nextToggleSize:0,
 
-            prevSiblingBorder: 0,
+            prevToggleBorder: 0,
         }
 
-        let nextSibling = toggle.nextElementSibling;
-        let prevSibling = toggle.previousElementSibling;
+        let nextToggle, prevToggle: Element;
+
+        if (isRange) {
+            nextToggle = scale.lastElementChild;
+            prevToggle = scale.firstElementChild;
+        }
+        
 
         if (isVertical) {
             borderVals.togDistBord = toggle.getBoundingClientRect().top;
@@ -394,12 +462,12 @@ class View extends Observable {
             borderVals.togSize = toggle.getBoundingClientRect().height;
             borderVals.scaleSize = scale.getBoundingClientRect().height;
 
-            if (nextSibling) {
-                borderVals.nextSiblingBorder = nextSibling.getBoundingClientRect().top;
-                borderVals.nextSiblingSize = nextSibling.getBoundingClientRect().height;
+            if (nextToggle) {
+                borderVals.nextToggleBorder = nextToggle.getBoundingClientRect().top;
+                borderVals.nextToggleSize = nextToggle.getBoundingClientRect().height;
             }
-            if (prevSibling) {
-                borderVals.prevSiblingBorder = prevSibling.getBoundingClientRect().bottom;
+            if (prevToggle) {
+                borderVals.prevToggleBorder = prevToggle.getBoundingClientRect().bottom;
             }
         } else {
             borderVals.togDistBord = toggle.getBoundingClientRect().left;
@@ -411,34 +479,50 @@ class View extends Observable {
             borderVals.togSize = toggle.getBoundingClientRect().width;
             borderVals.scaleSize = scale.getBoundingClientRect().width;
 
-            if (nextSibling) {
-                borderVals.nextSiblingBorder = nextSibling.getBoundingClientRect().left;
-                borderVals.nextSiblingSize = nextSibling.getBoundingClientRect().width;
+            if (nextToggle) {
+                borderVals.nextToggleBorder = nextToggle.getBoundingClientRect().left;
+                borderVals.nextToggleSize = nextToggle.getBoundingClientRect().width;
             }
-            if (prevSibling) {
-                borderVals.prevSiblingBorder = prevSibling.getBoundingClientRect().right;
+            if (prevToggle) {
+                borderVals.prevToggleBorder = prevToggle.getBoundingClientRect().right;
             }
         }
-
         return borderVals;
     };
+
+    progressBarSetCoords() {
+
+        let progressBar = document.getElementById(this.sliderInterface.progressBarId);
+        console.log("#" + this.sliderInterface.progressBarId);
+        console.log("progress bar", progressBar);
+
+        if (this.sliderInterface.sliderInfo.isRange) {
+            progressBar.style.left = this.sliderInterface.scale.scale.firstElementChild.getBoundingClientRect().right + "px";
+            progressBar.style.right = this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().left + "px";
+        } else {
+            
+        }
+
+    }
+
 }
 
 class SliderInterface extends InterfaceElement  {
     scale: Scale;
     controlPanel: controlPanel;
     toggles: Array<string>;
+    progressBarId: string;
 
     sliderInfo: {
         idNum: number,
-        toggleNumber: number
+        isRange: boolean
     };
 
     constructor(sliderInfo: any) {
         super();
         this.sliderInfo = {
             idNum: sliderInfo.idNum,
-            toggleNumber: sliderInfo.toggleNumber
+            isRange: sliderInfo.isRange
         };
         this.toggles = [];
         this.render();
@@ -447,18 +531,50 @@ class SliderInterface extends InterfaceElement  {
     render() {
         this.container = this.createElement("div", "slider__mainContainer", this.sliderInfo.idNum);
         this.scale = new Scale(this.sliderInfo.idNum);
-        this.controlPanel = new controlPanel(this.sliderInfo.idNum);
+        this.controlPanel = new controlPanel(this.sliderInfo.idNum, this.sliderInfo.isRange);
         this.container.append(this.scale.container);
-        for (let i = 0; i < this.sliderInfo.toggleNumber; i++) {
-            this.addToggle(this.scale.scale, i + 1);
-        } 
+        this.createToggles();
         this.container.append(this.controlPanel.container);
-        
-        
     };
+
+    updateToggles() {
+        this.removeToggles();
+        this.createToggles();
+        let toHideLabels = (document.getElementById(this.controlPanel.showToggleLabelsCheckboxID)) as HTMLInputElement;
+        if (toHideLabels.checked) {
+            this.hideToggleLabels(false);
+        }
+    }
+
+    removeToggles() {
+        while (this.scale.scale.firstChild) {
+            this.scale.scale.removeChild(this.scale.scale.firstChild);
+        }
+        this.toggles = [];
+    }
+
+    createToggles() {
+        let progressBar = this.createElement("div", "slider__progressBar", this.sliderInfo.idNum);
+        this.progressBarId = progressBar.getAttribute("id");
+        if (this.sliderInfo.isRange) {
+            for (let i = 0; i < 2; i++) {
+                this.addToggle(this.scale.scale, i + 1);
+                if (i == 0) {
+                    this.scale.scale.append(progressBar); 
+                }
+            }
+        } else {
+            this.scale.scale.append(progressBar);
+            this.addToggle(this.scale.scale, 1);
+        }
+    }
 
     addToggle(parentElement: Element, index: number) {
         let toggle = new Toggle(this.sliderInfo.idNum + '-' + index);
+        if (parentElement.classList.contains("vertical")) {
+            toggle.container.classList.add("vertical");
+            toggle.container.firstElementChild.classList.add("vertical");
+        }
         parentElement.append(toggle.container);
         this.toggles.push(toggle.container.getAttribute("id"));
     };
@@ -474,8 +590,6 @@ class SliderInterface extends InterfaceElement  {
             }
         }
     };
-
-
     rotateSlider(toVertical: boolean) {
         let scaleContainer = document.getElementById(this.scale.container.getAttribute("id"));
         let scale = document.getElementById(this.scale.scaleID);
@@ -545,6 +659,7 @@ class Toggle extends InterfaceElement {
 class controlPanel extends InterfaceElement {
 
     idNum: number;
+    isRange: boolean;
 
     showToggleLabelsCheckboxID: string;
     minInputID: string;
@@ -552,19 +667,19 @@ class controlPanel extends InterfaceElement {
     stepInputID: string;
     isHorizontalRadioID: string;
     isVerticalRadioID: string;
-    addToggleButtonID: string;
-    deleteAllTogglesButtonID: string;
+    isSingleValRadioID: string;
+    isRangeValRadioID: string;
     toggleInputsContainerID: string;
 
-    constructor(idNum: number){
+    constructor(idNum: number, isRange: boolean){
         super();
         this.idNum = idNum;
+        this.isRange = isRange;
         this.render();   
     }
 
     render() {
         this.container = this.createElement("div", "slider__controlElements", this.idNum);
-
 
         let showToggleLabelsCheckbox = this.createElement("input", "slider__valueCheckbox", this.idNum);
         showToggleLabelsCheckbox.setAttribute("type", "checkbox");
@@ -620,16 +735,36 @@ class controlPanel extends InterfaceElement {
         viewRadioVerticalLabel.innerHTML = "Вертикальный";
         viewRadioVerticalLabel.setAttribute("for", this.isVerticalRadioID);
 
-        let addToggleButton = this.createElement("button", "slider__addHandleButton", this.idNum);
-        addToggleButton.setAttribute("type", "button");
-        addToggleButton.innerHTML = "+";
-        this.addToggleButtonID = addToggleButton.getAttribute("id");
 
-        let deleteAllTogglesButton = this.createElement("button", "slider__deleteAllTogglesButton", this.idNum);
-        deleteAllTogglesButton.setAttribute("type", "button");
-        deleteAllTogglesButton.innerHTML = "- all";
-        deleteAllTogglesButton.classList.add('hidden');
-        this.deleteAllTogglesButtonID = deleteAllTogglesButton.getAttribute("id");
+        let viewRadioValTypeLabel = this.createElement("label", "slider__viewRadioCommonLabel", this.idNum);
+        viewRadioValTypeLabel.innerHTML = "Тип значения:";
+
+        let isSingleValRadio = this.createElement("input", "slider__viewRadioValType-single", this.idNum);
+        isSingleValRadio.setAttribute("type", "radio");
+        isSingleValRadio.setAttribute("name", "slider__viewRadioValType-" + this.idNum);
+        isSingleValRadio.setAttribute("value", "single");
+        this.isSingleValRadioID = isSingleValRadio.getAttribute("id"); 
+
+        let viewRadioSingleValLabel = this.createElement("label", "slider__viewRadioLabel", this.idNum);
+        viewRadioSingleValLabel.innerHTML = "Значение";
+        viewRadioSingleValLabel.setAttribute("for", this.isSingleValRadioID);
+
+        let isRangeValRadio = this.createElement("input", "slider__viewRadioValType-range", this.idNum);
+        isRangeValRadio.setAttribute("type", "radio");
+        isRangeValRadio.setAttribute("name", "slider__viewRadioValType-" + this.idNum);
+        isRangeValRadio.setAttribute("value", "range");
+        this.isRangeValRadioID = isRangeValRadio.getAttribute("id");
+
+        let viewRadioRangeValLabel = this.createElement("label", "slider__viewRadioLabel", this.idNum);
+        viewRadioRangeValLabel.innerHTML = "Интервал";
+        viewRadioRangeValLabel.setAttribute("for", this.isRangeValRadioID);
+
+        if (this.isRange) {
+            isRangeValRadio.setAttribute("checked", "true");
+        } 
+        if (!this.isRange) {
+            isSingleValRadio.setAttribute("checked", "true");
+        }
 
         let toggleInputsContainer = this.createElement("div", "slider__toggleControlContainer", this.idNum);
         this.toggleInputsContainerID = toggleInputsContainer.getAttribute("id");
@@ -651,9 +786,13 @@ class controlPanel extends InterfaceElement {
         viewRadioContainer.append(viewRadioHorizontalLabel);
         viewRadioContainer.append(isVerticalRadio);
         viewRadioContainer.append(viewRadioVerticalLabel);
+
+        viewRadioContainer.append(viewRadioValTypeLabel);
+        viewRadioContainer.append(isSingleValRadio);
+        viewRadioContainer.append(viewRadioSingleValLabel);
+        viewRadioContainer.append(isRangeValRadio);
+        viewRadioContainer.append(viewRadioRangeValLabel);
         
-        this.container.append(addToggleButton);
-        this.container.append(deleteAllTogglesButton);
         this.container.append(toggleInputsContainer);
     }
 }
@@ -667,7 +806,7 @@ for (let [index, elem] of containers.entries()) {
         minScaleValue: 0,
         maxScaleValue: 100,
         step: 5,
-        toggleNumber: 2
+        isRange: false,
     }, elem);
 }
 
@@ -675,7 +814,7 @@ function createSlider(info: { idNum: number,
                               minScaleValue: number,
                               maxScaleValue: number,
                               step: number,
-                              toggleNumber: number}, 
+                              isRange: boolean}, 
                       parentElement: Element)  {
     const newModel = new Model(info);
     const newView = new View(newModel, parentElement);

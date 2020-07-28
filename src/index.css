@@ -172,7 +172,7 @@ input:checked+.slider__viewRadioLabel::after {
     border-radius: 10px;
     display: flex;
     position: relative;
-    justify-content: center;
+    /* justify-content: center; */
     align-items: center;
 }
 
@@ -180,7 +180,6 @@ input:checked+.slider__viewRadioLabel::after {
     position: absolute;
     display: none;
     top: -5px;
-    left: calc(50% - 10px);
     width: 20px;
     height: 20px;
     display: flex;
@@ -213,6 +212,13 @@ input:checked+.slider__viewRadioLabel::after {
     margin-bottom: 5px;
 }
 
+.slider__progressBar {
+    display: block;
+    height: 100%;
+    width: 15px;
+    background-color: teal;
+}
+
 .hidden {
     visibility: hidden;
     height: 0px;
@@ -226,6 +232,7 @@ input:checked+.slider__viewRadioLabel::after {
 .slider__scale.vertical {
     width: 10px;
     height: 90%;
+    align-items: flex-start;
 }
 
 .slider__scaleContainer.vertical {
