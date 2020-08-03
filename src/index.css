@@ -185,6 +185,7 @@ input:checked+.slider__viewRadioLabel::after {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    z-index: 10;
 }
 
 .slider__toggle::before {
@@ -195,7 +196,7 @@ input:checked+.slider__viewRadioLabel::after {
     border-radius: 50%;
     background-color: white;
     border: 2px solid #262626;
- 
+    z-index: inherit;
 }
 
 .slider__toggleLabel {
@@ -214,9 +215,11 @@ input:checked+.slider__viewRadioLabel::after {
 
 .slider__progressBar {
     display: block;
+    position: absolute;
+    width: 0px;
     height: 100%;
-    width: 15px;
     background-color: teal;
+    z-index: 1;
 }
 
 .hidden {
@@ -233,6 +236,11 @@ input:checked+.slider__viewRadioLabel::after {
     width: 10px;
     height: 90%;
     align-items: flex-start;
+}
+
+.slider__progressBar.vertical {
+    height: 0px;
+    width: 100%;
 }
 
 .slider__scaleContainer.vertical {

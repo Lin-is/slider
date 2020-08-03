@@ -324,11 +324,23 @@ class View extends Observable {
 
         let isRange = false;
         let progressBar = document.getElementById(this.sliderInterface.progressBarId);
+        let isFirstToggle: boolean;
+        let isSecToggle: boolean;
 
 
         if (scale.children.length > 2) {
             isRange = true;
         } 
+
+        if (isRange) {
+            if (toggle.nextSibling) {
+                isFirstToggle = true;
+                isSecToggle = false;
+            } else if (toggle.previousSibling) {
+                isFirstToggle = false;
+                isSecToggle = true;
+            }
+        }
 
         let toggleLabel = toggle.firstElementChild;
         let that = this;
@@ -383,19 +395,30 @@ class View extends Observable {
                     toggle.style.top = newCoord + 'px'
                     if (!isRange) {
                         progressBar.style.height = newCoord + 'px';
-                        progressBar.style.top =  '0px'
-                        progressBar.style.width = '100%';
-                        progressBar.style.left = '0px';
                     }
+                    if (isRange) {
+                        progressBar.style.height = (scale.lastElementChild.getBoundingClientRect().bottom - scale.firstElementChild.getBoundingClientRect().top) + "px";
+                        if (isFirstToggle) {
+                            progressBar.style.top = newCoord + "px";
+                        }
+                        if (isSecToggle) {
+                            progressBar.style.bottom = newCoord + "px";
+                        }
+                    } 
                 } else {
                     toggle.style.left = newCoord + 'px'
                     if (!isRange) {
                         progressBar.style.width = newCoord + 'px';
-                        progressBar.style.left = '0px';
-                        progressBar.style.height = '100%';
-                        progressBar.style.top = '0px'
-
                     }
+                    if (isRange) {
+                        progressBar.style.width = (scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().left) + "px";
+                        if (isFirstToggle) {
+                            progressBar.style.left = newCoord + "px";
+                        }
+                        if (isSecToggle) {
+                            progressBar.style.right = newCoord + "px";
+                        }
+                    } 
                 }
 
 
@@ -555,6 +578,9 @@ class SliderInterface extends InterfaceElement  {
 
     createToggles() {
         let progressBar = this.createElement("div", "slider__progressBar", this.sliderInfo.idNum);
+        if (this.scale.scale.classList.contains("vertical")) {
+            progressBar.classList.add("vertical");
+        }
         this.progressBarId = progressBar.getAttribute("id");
         if (this.sliderInfo.isRange) {
             for (let i = 0; i < 2; i++) {
@@ -593,10 +619,19 @@ class SliderInterface extends InterfaceElement  {
     rotateSlider(toVertical: boolean) {
         let scaleContainer = document.getElementById(this.scale.container.getAttribute("id"));
         let scale = document.getElementById(this.scale.scaleID);
+        let progressBar: HTMLElement;
+        let progBarRightCoord: string;
+
+        if (this.sliderInfo.isRange) {
+            progressBar = (this.scale.scale.children[1]) as HTMLElement;
+        } else {
+            progressBar = (this.scale.scale.firstElementChild) as HTMLElement;
+        }
 
         if (toVertical && !scaleContainer.classList.contains("vertical")) {
             scaleContainer.classList.add("vertical");
             scale.classList.add("vertical");
+            progressBar.classList.add("vertical");
             for (let toggle of this.toggles) {
                 let toggleElem = document.getElementById(toggle);
                 let label = toggleElem.firstChild as HTMLElement
@@ -605,10 +640,22 @@ class SliderInterface extends InterfaceElement  {
                 let oldLeft = toggleElem.style.left;
                 toggleElem.style.left = -4 + "px";
                 toggleElem.style.top = oldLeft;
+                progBarRightCoord = oldLeft;
+            }
+            progressBar.style.height = progBarRightCoord;
+            progressBar.style.width = "100%";
+            progressBar.style.left = "0px"
+
+            if (this.sliderInfo.isRange) {
+                let firstToggle = document.getElementById(this.toggles[0]);
+                let secToggle = document.getElementById(this.toggles[1]);
+                progressBar.style.top = (firstToggle.getBoundingClientRect().top - this.scale.scale.getBoundingClientRect().top) + "px"
+                progressBar.style.height = (secToggle.getBoundingClientRect().top - firstToggle.getBoundingClientRect().top) + "px";
             }
         } else if (!toVertical && scale.classList.contains("vertical")) {
             scaleContainer.classList.remove("vertical");
             scale.classList.remove("vertical");
+            progressBar.classList.remove("vertical");
             for (let toggle of this.toggles) {
                 let toggleElem = document.getElementById(toggle);
                 let label = toggleElem.firstChild as HTMLElement
@@ -617,8 +664,21 @@ class SliderInterface extends InterfaceElement  {
                 let oldTop = toggleElem.style.top;
                 toggleElem.style.top = -5 + "px";
                 toggleElem.style.left = oldTop;
+                progBarRightCoord = oldTop;
+            }
+            progressBar.style.height = "100%";
+            progressBar.style.width = progBarRightCoord;
+            progressBar.style.top = "0px";
+
+            if (this.sliderInfo.isRange) {
+                let firstToggle = document.getElementById(this.toggles[0]);
+                let secToggle = document.getElementById(this.toggles[1]);
+                progressBar.style.left = (firstToggle.getBoundingClientRect().left - this.scale.scale.getBoundingClientRect().left) + "px";
+                progressBar.style.width = (secToggle.getBoundingClientRect().left - firstToggle.getBoundingClientRect().left) + "px";
             }
         }
+
+        
     }
 };
 
