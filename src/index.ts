@@ -188,7 +188,7 @@ class View extends Observable {
         this.connectInputsWithData(); 
         this.createTogglesControl();
         this.addDragAndDrop();
-        this.progressBarSetCoords();
+        // this.progressBarSetCoords();
     };
 
     clear() {
@@ -341,7 +341,6 @@ class View extends Observable {
                 isSecToggle = true;
             }
         }
-
         let toggleLabel = toggle.firstElementChild;
         let that = this;
         let min = 0,
@@ -394,36 +393,32 @@ class View extends Observable {
                 if (isVertical) {
                     toggle.style.top = newCoord + 'px'
                     if (!isRange) {
-                        progressBar.style.height = newCoord + 'px';
+                        progressBar.style.height = newCoord + coords.togSize / 2  + 'px';
                     }
                     if (isRange) {
-                        progressBar.style.height = (scale.lastElementChild.getBoundingClientRect().bottom - scale.firstElementChild.getBoundingClientRect().top) + "px";
+                        progressBar.style.height = (scale.lastElementChild.getBoundingClientRect().bottom  - scale.firstElementChild.getBoundingClientRect().bottom) + "px";
                         if (isFirstToggle) {
-                            progressBar.style.top = newCoord + "px";
+                            progressBar.style.top = newCoord + coords.togSize / 2 + "px";
                         }
                         if (isSecToggle) {
-                            progressBar.style.bottom = newCoord + "px";
+                            progressBar.style.bottom = newCoord - coords.togSize / 2  + "px";
                         }
                     } 
                 } else {
                     toggle.style.left = newCoord + 'px'
                     if (!isRange) {
-                        progressBar.style.width = newCoord + 'px';
+                        progressBar.style.width = newCoord + coords.togSize / 2  + 'px';
                     }
                     if (isRange) {
-                        progressBar.style.width = (scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().left) + "px";
+                        progressBar.style.width = (scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().right) + "px";
                         if (isFirstToggle) {
-                            progressBar.style.left = newCoord + "px";
+                            progressBar.style.left = newCoord + coords.togSize / 2  + "px";
                         }
                         if (isSecToggle) {
-                            progressBar.style.right = newCoord + "px";
+                            progressBar.style.right = newCoord - coords.togSize / 2  + "px";
                         }
                     } 
                 }
-
-
-                
-
                 //--------  расчет числа над ползунком  ---------------
 
                 let val: number;
@@ -513,21 +508,6 @@ class View extends Observable {
         return borderVals;
     };
 
-    progressBarSetCoords() {
-
-        let progressBar = document.getElementById(this.sliderInterface.progressBarId);
-        console.log("#" + this.sliderInterface.progressBarId);
-        console.log("progress bar", progressBar);
-
-        if (this.sliderInterface.sliderInfo.isRange) {
-            progressBar.style.left = this.sliderInterface.scale.scale.firstElementChild.getBoundingClientRect().right + "px";
-            progressBar.style.right = this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().left + "px";
-        } else {
-            
-        }
-
-    }
-
 }
 
 class SliderInterface extends InterfaceElement  {
@@ -578,19 +558,23 @@ class SliderInterface extends InterfaceElement  {
 
     createToggles() {
         let progressBar = this.createElement("div", "slider__progressBar", this.sliderInfo.idNum);
+        let HTMLbar = progressBar as HTMLElement;
         if (this.scale.scale.classList.contains("vertical")) {
-            progressBar.classList.add("vertical");
+            HTMLbar.classList.add("vertical");
+            HTMLbar.style.top = "0px";
+        } else {
+            HTMLbar.style.left = "0px";
         }
         this.progressBarId = progressBar.getAttribute("id");
         if (this.sliderInfo.isRange) {
             for (let i = 0; i < 2; i++) {
                 this.addToggle(this.scale.scale, i + 1);
                 if (i == 0) {
-                    this.scale.scale.append(progressBar); 
+                    this.scale.scale.append(HTMLbar); 
                 }
             }
         } else {
-            this.scale.scale.append(progressBar);
+            this.scale.scale.append(HTMLbar);
             this.addToggle(this.scale.scale, 1);
         }
     }
@@ -600,7 +584,7 @@ class SliderInterface extends InterfaceElement  {
         if (parentElement.classList.contains("vertical")) {
             toggle.container.classList.add("vertical");
             toggle.container.firstElementChild.classList.add("vertical");
-        }
+        } 
         parentElement.append(toggle.container);
         this.toggles.push(toggle.container.getAttribute("id"));
     };
