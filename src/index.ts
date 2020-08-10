@@ -1,4 +1,5 @@
 import './index.css'
+import { valHooks } from 'jquery';
 "use strict";
 
 
@@ -58,10 +59,11 @@ class Model extends Observable{
         minScaleValue: number,
         maxScaleValue: number,
         step: number,
-        isRange: boolean
+        isRange: boolean,
+        isVertical: boolean,
     };
 
-    constructor(sliderData: {idNum: number, minScaleValue: number, maxScaleValue: number, step: number, isRange: boolean}) {
+    constructor(sliderData: {idNum: number, minScaleValue: number, maxScaleValue: number, step: number, isRange: boolean, isVertical: boolean}) {
         super();
         this.sliderData = sliderData; 
     }
@@ -141,7 +143,6 @@ class Controller {
         } else if (info.elemId.includes('RadioVal')) {
             this.changeTogglesNumberValue(info.isRange);
         }
-
     };
     observerModelFunc(newValue: any){
         if ("min" in newValue) {
@@ -160,12 +161,25 @@ class Controller {
 class View extends Observable {
     model: Model;
     sliderInterface: SliderInterface;
+    togObservers: Array<Observer>;
     scaleInfo: {
         min: number,
         max: number,
         step: number,
         scaleMax: number,
         measure: string,
+        isVertical: boolean,
+    };
+
+    togglesInfo: {
+        firstTogCoord: number;
+        secTogCoord: number;
+    }
+    sendTogMessage = function (msg: any) {
+        for (var i = 0, len = this.togObservers.length; i < len; i++) {
+            this.togObservers[i].notify(msg);
+        }
+        console.log("tog message sended", msg);
     };
 
     constructor(model: Model, parentElement: Element) {
@@ -174,27 +188,39 @@ class View extends Observable {
         this.sliderInterface = new SliderInterface(this.model.sliderData);
         parentElement.append(this.sliderInterface.container);
         this.createListeners();
+        this.togObservers =[];
         
         this.scaleInfo = {
             min: null,
             max: null,
             step: null,
             scaleMax: null,
-            measure: ""
+            measure: "",
+            isVertical: false,
         };
+        this.togglesInfo = {
+            firstTogCoord: null,
+            secTogCoord: null,
+        }
+        this.togObservers.push(new Observer(this.togglesObserver.bind(this)));
+        this.addObserver(this.togObservers[0]);
     };
-
     displaySlider() {  
         this.connectInputsWithData(); 
         this.createTogglesControl();
         this.addDragAndDrop();
     };
-
     clear() {
         this.sliderInterface.container.remove();
         this.sliderInterface.toggles = [];
     };
-
+    togglesObserver(info: {isFirstToggle: boolean, newCoord: number}) { 
+        if (info.isFirstToggle){
+            this.togglesInfo.firstTogCoord = info.newCoord;
+        } else {
+            this.togglesInfo.secTogCoord = info.newCoord;
+        }
+    }
     updateTogglesWithControl() {
         this.sliderInterface.updateToggles();
         
@@ -205,7 +231,6 @@ class View extends Observable {
         this.createTogglesControl();
         this.addDragAndDrop();
     }
-
     connectInputsWithData() {
         let maxInput = document.getElementById(this.sliderInterface.controlPanel.maxInputID);
         maxInput.setAttribute("placeholder", this.scaleInfo.max.toString());
@@ -218,7 +243,6 @@ class View extends Observable {
 
         this.scaleInfo.scaleMax = this.scaleInfo.max - this.scaleInfo.min;
     };
-
     addDragAndDrop() {
         for (let i = 0; i < this.sliderInterface.toggles.length; i++) {
             let toggleID = this.sliderInterface.toggles[i];
@@ -227,7 +251,6 @@ class View extends Observable {
             this.addToggleDragAndDrop((this.sliderInterface.scale.scale) as HTMLElement, toggle, input);
         }
     };
-
     createTogglesControl() {
         let that = this;
         for (let i = 0; i < this.sliderInterface.toggles.length; i++) {
@@ -260,12 +283,38 @@ class View extends Observable {
             let toggleInputListener = function () {
                 let thisHTML = this as HTMLInputElement;
                 let toggle = document.getElementById(thisHTML.getAttribute("data-toggleID")) as HTMLElement;
-                that.chandeTogglePosition(+thisHTML.value, toggle);
+                let isFirstTog = (i == 0) ? true : false;
+                let newVal = +thisHTML.value;
+                if (newVal > that.scaleInfo.max) {
+                    newVal = that.scaleInfo.max;
+                }
+                if (newVal < that.scaleInfo.min) {
+                    newVal = that.scaleInfo.min;
+                }
+                let info = {
+                    isFirstToggle: isFirstTog,
+                    newCoord: that.calculateToggleValToCoord(newVal),
+                }
+                that.sendTogMessage(info);
+                that.changeTogglePosition(toggle);
             }
             toggleValueField.addEventListener("change", toggleInputListener);
         }
     }
-
+    calculateToggleValToCoord(val: number) : number {
+        let isVertical = this.sliderInterface.scale.scale.classList.contains("vertical");
+        let scaleSize = isVertical ? this.sliderInterface.scale.scale.getBoundingClientRect().height : this.sliderInterface.scale.scale.getBoundingClientRect().width;
+        let toggleSize = isVertical ? this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().height : this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().width; 
+        let coord = ((val - this.scaleInfo.min) * (scaleSize - toggleSize)) / (this.scaleInfo.max - this.scaleInfo.min);
+        return coord;
+    }
+    calculateToggleCoordToVal(coord: number): number {
+        let isVertical = this.sliderInterface.scale.scale.classList.contains("vertical");
+        let scaleSize = isVertical ? this.sliderInterface.scale.scale.getBoundingClientRect().height : this.sliderInterface.scale.scale.getBoundingClientRect().width;
+        let toggleSize = isVertical ? this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().height : this.sliderInterface.scale.scale.lastElementChild.getBoundingClientRect().width; 
+        let val = Math.round(((coord * this.scaleInfo.scaleMax) / (scaleSize - toggleSize)) + this.scaleInfo.min);
+        return val;
+    }
     createListeners() {
         let that = this;
 
@@ -279,8 +328,6 @@ class View extends Observable {
                 that.sendMessage(info);
             }
         }
-
-        
 
         let checkboxListener = function() {
             let thisHTML: HTMLInputElement = this as HTMLInputElement;
@@ -324,7 +371,6 @@ class View extends Observable {
         radioHorizontal.addEventListener("click", this.rotateHorizontal.bind(that));
 
     };
-
     rotateVertical() {
         this.sliderInterface.rotateSlider(true);
     }
@@ -332,27 +378,17 @@ class View extends Observable {
         this.sliderInterface.rotateSlider(false);
     }
     addToggleDragAndDrop(scale: HTMLElement, toggle: HTMLElement, input: HTMLInputElement) {
-
         let isRange = false;
-        let progressBar = document.getElementById(this.sliderInterface.progressBarId);
-        let isFirstToggle: boolean;
-        let isSecToggle: boolean;
-
+        let isFirstToggle = true;
 
         if (scale.children.length > 2) {
             isRange = true;
         } 
-
-        if (isRange) {
-            if (toggle.nextSibling) {
-                isFirstToggle = true;
-                isSecToggle = false;
-            } else if (toggle.previousSibling) {
-                isFirstToggle = false;
-                isSecToggle = true;
-            }
+        if (isRange && toggle.previousSibling) {
+            isFirstToggle = false;
         }
-        let toggleLabel = toggle.firstElementChild;
+
+        let toggleLabel = toggle.firstElementChild as HTMLElement;
         let that = this;
         let min = 0,
             shiftX: number;
@@ -403,41 +439,16 @@ class View extends Observable {
                 }
                 if (isVertical) {
                     toggle.style.top = newCoord + 'px'
-                    if (!isRange) {
-                        progressBar.style.height = newCoord + coords.togSize / 2  + 'px';
-                    }
-                    if (isRange) {
-                        progressBar.style.height = (scale.lastElementChild.getBoundingClientRect().bottom  - scale.firstElementChild.getBoundingClientRect().bottom) + "px";
-                        if (isFirstToggle) {
-                            progressBar.style.top = newCoord + coords.togSize / 2 + "px";
-                        }
-                        if (isSecToggle) {
-                            progressBar.style.bottom = newCoord - coords.togSize / 2  + "px";
-                        }
-                    } 
                 } else {
                     toggle.style.left = newCoord + 'px'
-                    if (!isRange) {
-                        progressBar.style.width = newCoord + coords.togSize / 2  + 'px';
-                    }
-                    if (isRange) {
-                        progressBar.style.width = (scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().right) + "px";
-                        if (isFirstToggle) {
-                            progressBar.style.left = newCoord + coords.togSize / 2  + "px";
-                        }
-                        if (isSecToggle) {
-                            progressBar.style.right = newCoord - coords.togSize / 2  + "px";
-                        }
-                    } 
                 }
-                //--------  расчет числа над ползунком  ---------------
-
-                let val: number;
-                val = Math.round(((newCoord * that.scaleInfo.scaleMax) / (coords.scaleSize - coords.togSize)) + that.scaleInfo.min);
-                toggleLabel.innerHTML = val + "";
-                input.value = val + "";
-              
-        
+                let info = {
+                    isFirstToggle: isFirstToggle,
+                    newCoord: newCoord,
+                }
+                that.sendTogMessage(info);
+                that.updateToggleLabel(toggleLabel, isFirstToggle, input);
+                that.updateProgressBar();
             };
             function onMouseUp() {
                 document.removeEventListener('mouseup', onMouseUp);
@@ -449,7 +460,6 @@ class View extends Observable {
             return false;
         });
     };
-
     coordsForDragAndDrop(isVertical: boolean, scale: Element, toggle: Element) {
 
         let isRange = false;
@@ -518,15 +528,29 @@ class View extends Observable {
         }
         return borderVals;
     };
-
-    chandeTogglePosition(newCoord: number | string, toggle: HTMLElement) {
+    changeTogglePosition(toggle: HTMLElement) {
         let scale = this.sliderInterface.scale.scale as HTMLElement;
-        let progressBar = (scale.childElementCount > 2) ? (scale.children[1] as HTMLElement) : (scale.firstElementChild as HTMLElement);
-
-        let isVertical = scale.classList.contains("vertical") ? true : false;
         let isRange = (scale.childElementCount > 2) ? true : false;
-        let isLastTog = (toggle.previousSibling) ? true : false;
+        let isLastTog = toggle.previousSibling ? true : false;
+        let firstTog: HTMLElement;
+        let secTog: HTMLElement;
+        if (isRange) {
+            if (toggle.previousSibling) {
+                firstTog = scale.firstElementChild as HTMLElement;
+                secTog = toggle;
+            } else {
+                firstTog = toggle;
+                secTog = scale.lastElementChild as HTMLElement;
+            }
 
+        } else {
+            firstTog = toggle;
+            secTog = null;
+        }
+        let newCoord = (!isRange) ? this.togglesInfo.firstTogCoord : (isLastTog ? this.togglesInfo.secTogCoord : this.togglesInfo.firstTogCoord);
+        
+        let isVertical = scale.classList.contains("vertical") ? true : false;
+    
         let scaleSize = scale.offsetWidth;
         let toggleSize = toggle.offsetWidth;
 
@@ -538,58 +562,53 @@ class View extends Observable {
         let borderMaxVal = scaleSize - toggleSize / 2;
         let newText = newCoord;
 
-        
-        let toggleNewPosition = ((+newCoord - this.scaleInfo.min) * (scaleSize - toggleSize)) / (this.scaleInfo.max - this.scaleInfo.min);
-
-        if (isRange && isVertical) {
-            if (isLastTog) { //последний ползунок
-
-            } else { //первый ползунок
-                
-            }
-        } else if (isRange && !isVertical) {
-            if (isLastTog) { //последний ползунок
-                borderMinVal = scale.getBoundingClientRect().left - scale.firstElementChild.getBoundingClientRect().right;
-                newText = scale.firstElementChild.firstElementChild.innerHTML;
-            } else { //первый ползунок
-                borderMaxVal = scale.getBoundingClientRect().right - scale.lastElementChild.getBoundingClientRect().left;
-                newText = scale.lastElementChild.firstElementChild.innerHTML;
-            }
-        }
-
-
-        if (toggleNewPosition > borderMaxVal) {
-            toggleNewPosition = borderMaxVal;
+        if (newCoord > borderMaxVal) {
+            newCoord = borderMaxVal;
             newText = this.scaleInfo.max;
         }
-        if (toggleNewPosition < borderMinVal) {
-            toggleNewPosition = borderMinVal;
+        if (newCoord < borderMinVal) {
+            newCoord = borderMinVal;
             newText = this.scaleInfo.min;
         }
+
         if (isVertical) {
-            toggle.style.top = toggleNewPosition + "px";
-            if (!isRange || isRange && isLastTog) {
-                progressBar.style.height = toggleNewPosition + "px";
-            } else if (isRange && !isLastTog) {//ПЕРВЫЙ ПОЛЗУНОК вертикальный
-                progressBar.style.top = toggleNewPosition - toggleSize / 2 + "px";
-                progressBar.style.height = scale.lastElementChild.getBoundingClientRect().bottom - scale.firstElementChild.getBoundingClientRect().bottom + "px";
+            toggle.style.top = newCoord + "px";
+        } else {
+            toggle.style.left = newCoord + "px";
+        }
+        this.updateProgressBar();
+        toggle.firstElementChild.textContent = "" + this.calculateToggleCoordToVal(newCoord);
+    }
+    updateToggleLabel(label: HTMLElement, isFirstToggle: boolean,  input: HTMLInputElement) {
+        let newCoord = isFirstToggle ? this.togglesInfo.firstTogCoord : this.togglesInfo.secTogCoord;
+        let val = this.calculateToggleCoordToVal(newCoord);
+        label.innerHTML = val + "";
+        input.value = val + "";
+    }
+    updateProgressBar() {
+        let scale = this.sliderInterface.scale.scale as HTMLElement;
+        let isVertical = scale.classList.contains("vertical") ? true : false;
+        let isRange = scale.childElementCount > 2 ? true : false;
+        let progressBar = scale.childElementCount > 2 ? scale.children[1] as HTMLElement : scale.firstElementChild as HTMLElement;
+
+        if (isRange) {
+            if (isVertical) {
+                progressBar.style.top = this.togglesInfo.firstTogCoord + "px";
+                progressBar.style.height = this.togglesInfo.secTogCoord - this.togglesInfo.firstTogCoord + "px";
+            } else {
+                progressBar.style.left = this.togglesInfo.firstTogCoord + "px";
+                progressBar.style.width = this.togglesInfo.secTogCoord - this.togglesInfo.firstTogCoord + "px";
             } 
         } else {
-            toggle.style.left = toggleNewPosition + "px";
-            if (!isRange) {
-                progressBar.style.width = toggleNewPosition + "px";
-            } else if (isLastTog) {//ПОСЛЕДНИЙ ПОЛЗУНОК ГОРИЗОНТАЛЬНЫЙ
-                progressBar.style.right = toggleNewPosition - toggleSize / 2 + "px";
-                progressBar.style.width = scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().right + "px";
-            } else { //ПЕРВЫЙ ПОЛЗУНОК ГОРИЗОНТАЛЬНЫЙ
-                progressBar.style.left = toggleNewPosition - toggleSize / 2 + "px";
-                progressBar.style.width = scale.lastElementChild.getBoundingClientRect().right - scale.firstElementChild.getBoundingClientRect().right + "px";
-            }
+            if (isVertical) {
+                progressBar.style.top = "0px";
+                progressBar.style.height = this.togglesInfo.firstTogCoord + "px";
+            } else {
+                progressBar.style.left = "0px";
+                progressBar.style.width = this.togglesInfo.firstTogCoord + "px";
+            } 
         }
-        
-        toggle.firstElementChild.textContent = "" + newText;
     }
-
 }
 
 class SliderInterface extends InterfaceElement  {
@@ -621,7 +640,6 @@ class SliderInterface extends InterfaceElement  {
         this.createToggles();
         this.container.append(this.controlPanel.container);
     };
-
     updateToggles() {
         this.removeToggles();
         this.createToggles();
@@ -630,14 +648,12 @@ class SliderInterface extends InterfaceElement  {
             this.hideToggleLabels(false);
         }
     }
-
     removeToggles() {
         while (this.scale.scale.firstChild) {
             this.scale.scale.removeChild(this.scale.scale.firstChild);
         }
         this.toggles = [];
     }
-
     createToggles() {
         let progressBar = this.createElement("div", "slider__progressBar", this.sliderInfo.idNum);
         let HTMLbar = progressBar as HTMLElement;
@@ -660,22 +676,38 @@ class SliderInterface extends InterfaceElement  {
             this.addToggle(this.scale.scale, 1);
         }
     }
-
     addToggle(parentElement: Element, index: number) {
         let toggle = new Toggle(this.sliderInfo.idNum + '-' + index);
-        if (parentElement.classList.contains("vertical")) {
+        let isVertical = parentElement.classList.contains("vertical") ? true : false;
+        let togContainer = toggle.container as HTMLElement;
+        let startVal : number;
+
+        if (!isVertical) {
+            startVal = Math.floor(parentElement.getBoundingClientRect().width * 0.25);
+            if (index > 1) {
+                startVal = Math.floor(parentElement.getBoundingClientRect().width * 0.75) ;
+            } 
+            togContainer.style.left = startVal + "px"
+            togContainer.firstElementChild.innerHTML = startVal + "";
+        }
+        if (isVertical) {
             toggle.container.classList.add("vertical");
             toggle.container.firstElementChild.classList.add("vertical");
+            startVal = Math.floor(parentElement.getBoundingClientRect().height * 0.25);
+            if (index > 1){
+                startVal = Math.floor(parentElement.getBoundingClientRect().height * 0.75);
+            } 
+            togContainer.style.top = startVal + "px"
+            togContainer.firstElementChild.innerHTML = startVal + "";
         } 
         parentElement.append(toggle.container);
         this.toggles.push(toggle.container.getAttribute("id"));
     };
-
-    hideToggleLabels(isHidden: boolean) { 
+    hideToggleLabels(toHide: boolean) { 
         for (let toggle of this.toggles) {
             let toggleElem = document.getElementById(toggle);
             let label = toggleElem.firstChild as HTMLElement
-            if (isHidden) {
+            if (toHide) {
                 label.classList.add("hidden");
             } else {
                 label.classList.remove("hidden");
@@ -746,7 +778,6 @@ class SliderInterface extends InterfaceElement  {
 
         
     }
-    
 };
 
 class Scale extends InterfaceElement {
@@ -934,6 +965,7 @@ for (let [index, elem] of containers.entries()) {
         maxScaleValue: 100,
         step: 5,
         isRange: false,
+        isVertical: false,
     }, elem);
 }
 
@@ -941,7 +973,9 @@ function createSlider(info: { idNum: number,
                               minScaleValue: number,
                               maxScaleValue: number,
                               step: number,
-                              isRange: boolean}, 
+                              isRange: boolean,
+                              isVertical: boolean,
+                            }, 
                       parentElement: Element)  {
     const newModel = new Model(info);
     const newView = new View(newModel, parentElement);

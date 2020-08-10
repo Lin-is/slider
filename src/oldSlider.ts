@@ -726,3 +726,14 @@ const app = new Controller(newModel, newView);
 
 
 
+
+
+
+// let info = {
+//     isFirstToggle: isFirstToggle,
+//     newCoord: newCoord,
+// }
+//val = Math.round(((newCoord * this.scaleInfo.scaleMax) / (coords.scaleSize - coords.togSize)) + this.scaleInfo.min);
+
+
+
