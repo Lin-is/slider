@@ -2,6 +2,8 @@ import './index.css'
 import { valHooks } from 'jquery';
 "use strict";
 
+
+
 interface sliderInfo {
     idNum?: number,
     minValue?: number,
@@ -11,6 +13,11 @@ interface sliderInfo {
     startTogVals?: Array<number>,
     measure?: string,
     isVertical?: boolean,
+}
+
+interface toggleMsg {
+    order: number,
+    newCoord: number,
 }
 
 class InterfaceElement {
@@ -30,7 +37,9 @@ class InterfaceElement {
             top: this.container.getBoundingClientRect().top,
             bottom: this.container.getBoundingClientRect().bottom,
             left: this.container.getBoundingClientRect().left,
-            right: this.container.getBoundingClientRect().right
+            right: this.container.getBoundingClientRect().right,
+            height: this.container.getBoundingClientRect().height,
+            width: this.container.getBoundingClientRect().width,
         }
         return coords;
     };
@@ -44,7 +53,7 @@ class Observable {
     }
     sendMessage(msg: any) {
         for (var i = 0, len = this.observers.length; i < len; i++) {
-            this.observers[i].notify(msg);
+            this.observers[i].update(msg);
         }
         console.log("message sended", msg);
     };
@@ -54,13 +63,37 @@ class Observable {
 }
 
 class Observer {
-    notify: any;
+    update: any;
     constructor(behavior: any) {
-        this.notify = function (msg: any) {
+        this.update = function (msg: any) {
             behavior(msg);
         };
     }
 }
+
+
+
+
+
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+
+
 
 class Model extends Observable {
     sliderData: sliderInfo;
@@ -137,29 +170,22 @@ class View {
     constructor(info: sliderInfo, parentElement: Element) {
         this.info = info;
         this.scale = new Scale(this.info);
-        console.log(this.scale);
         this.controlPanel = new ControlPanel;
         this.render(parentElement);
         this.scale.renderSecStage();
-    }
+        this.scale.addDragAndDrop();
+    };
+
     render(parentElement: Element) {
         this.container = document.createElement("div");
         this.container.classList.add("slider__mainContainer");
         this.container.setAttribute("id", "slider__mainContainer-" + this.info.idNum);
 
-
         this.container.append(this.scale.container);
         this.container.append(this.controlPanel.container);
-        
-
+    
         parentElement.append(this.container);
-        console.log(this.container);
-
-        
-    }
-
-
-
+    };
 }
 
 class Scale extends InterfaceElement {
@@ -167,15 +193,27 @@ class Scale extends InterfaceElement {
     scaleID: string;
     info: sliderInfo;
     toggles: Array<Toggle>;
+    togCoords: {
+        firstTog: number,
+        secTog: number,
+    }
     progressBar: HTMLElement;
+    togObserver: Observer;
+    labelUpdateObserver: Observer;
 
     constructor(info: sliderInfo) {
         super();
         this.toggles = [];
         this.info = info; 
+        this.togCoords = {
+            firstTog: undefined,
+            secTog: undefined,
+        };
         console.log("slider info", this.info);
         this.renderFirstStage();
-    }
+        this.labelUpdateObserver = new Observer(this.togObserverUpdateLabelFunc.bind(this));
+        this.togObserver = new Observer(this.togObserverFunc.bind(this));
+    };
 
     renderFirstStage() {
         this.container = this.createElement("div", "slider__scaleContainer", this.info.idNum) as HTMLElement;
@@ -186,56 +224,85 @@ class Scale extends InterfaceElement {
         }
         this.container.append(this.scale);
         this.scaleID = this.scale.getAttribute("id");
-    }
-
+    };
     renderSecStage() {
         let that = this;
         this.addToggles();
         this.toggles.forEach((toggle, index) => {
             let togCoord = that.calculateToggleValToCoord(that.info.startTogVals[index]);
-            toggle.setPosition(togCoord, that.info.startTogVals[index]);
+            toggle.setPosition(togCoord);
+            toggle.updateLabel(that.info.startTogVals[index]);
         })
-    }
+    };
+
 
     addToggles(){
-        console.log(this.scale);
         let progBarStartCoord = this.info.isVertical ? this.getCoords().left : this.getCoords().top,
-            firstTog = new Toggle(this.info, this.info.startTogVals[0]);
+            firstTog = new Toggle(this.info, this.info.startTogVals[0], 0);
+            firstTog.addObserver(this.labelUpdateObserver);
+            firstTog.addObserver(this.togObserver);
         this.toggles.push(firstTog);
-        let firstTogCoord = this.calculateToggleValToCoord(this.info.startTogVals[0]),
-            progBarFinCoord = firstTogCoord;
+        let firstTogCoord = this.calculateToggleValToCoord(this.info.startTogVals[0]);
+        this.togCoords.firstTog = firstTogCoord;
 
         if (this.info.isRange) {
             let secTogCoord = this.calculateToggleValToCoord(this.info.startTogVals[1]),
-                secTog = new Toggle(this.info, this.info.startTogVals[1]);
+                secTog = new Toggle(this.info, this.info.startTogVals[1], 1);
+                secTog.addObserver(this.labelUpdateObserver);
+                secTog.addObserver(this.togObserver);
 
             this.toggles.push(secTog);
-            progBarStartCoord = firstTogCoord;
-            progBarFinCoord = secTogCoord;
-
+            this.togCoords.secTog = secTogCoord;
             this.scale.append(firstTog.container);
-            this.addProgressBar(progBarStartCoord, progBarFinCoord);
+            this.addProgressBar(firstTogCoord, secTogCoord);
             this.scale.append(secTog.container);
 
         } else {
-            this.addProgressBar(progBarStartCoord, progBarFinCoord);
+            this.addProgressBar(progBarStartCoord, firstTogCoord);
             this.scale.append(firstTog.container);
+            this.togCoords.secTog = undefined;
         }
-    }
+    };
+    addDragAndDrop(){
+        let that = this;
+        that.updateDradAndDropInfo();
+        this.toggles.forEach((toggle) => {
+            toggle.addDragAndDrop();
+        });
+    };
+    updateDradAndDropInfo() {
+        let scaleSize = this.info.isVertical ? this.scale.getBoundingClientRect().height : this.scale.getBoundingClientRect().width,
+            togSize = this.info.isVertical ? this.toggles[0].getCoords().height : this.toggles[0].getCoords().width,
+            scaleStart = this.info.isVertical ? this.scale.getBoundingClientRect().top : this.scale.getBoundingClientRect().left,
+            finEdge = scaleSize, 
+            startEdge = 0,
+            that = this;
+
+        for (let i = 0; i < this.toggles.length; i++) {
+            finEdge = scaleSize;
+            startEdge = 0;
+
+            if (i === 0 && this.info.isRange) {
+                finEdge = that.togCoords.secTog - togSize; 
+            }
+            if (i === 1) {
+                startEdge = that.togCoords.firstTog + togSize;
+            }
+            this.toggles[i].updateDragAndDropInfo(startEdge, finEdge, scaleStart);
+        }
+    };
+
 
     removeToggles(){
         this.toggles.forEach((toggle) => {
             toggle.remove();
         });
         this.toggles = [];
-    }
+    };
 
     updateInfo(newInfo: sliderInfo) {
-        console.log(this.info);
         this.info = newInfo;
-        console.log(this.info);
-
-    }
+    };
 
     addProgressBar(startCoord: number, endCoord: number){
         this.progressBar = this.createElement("div", "slider__progressBar", this.info.idNum) as HTMLElement;
@@ -244,7 +311,7 @@ class Scale extends InterfaceElement {
         }
         this.scale.append(this.progressBar);
         this.progressBarSetCoords(startCoord, endCoord);
-    }
+    };
 
     progressBarSetCoords(startCoord: number, endCoord: number){
         if (this.info.isRange) {
@@ -264,20 +331,22 @@ class Scale extends InterfaceElement {
                 this.progressBar.style.width = endCoord + "px";
             }
         }
+    };
 
-    }
     calculateToggleValToCoord(val: number): number {
         let scaleSize = this.info.isVertical ? this.scale.getBoundingClientRect().height : this.scale.getBoundingClientRect().width;
         let toggleSize = this.info.isVertical ? this.toggles[0].container.getBoundingClientRect().height : this.toggles[0].container.getBoundingClientRect().width;
         let coord = ((val - this.info.minValue) * (scaleSize - toggleSize)) / (this.info.maxValue - this.info.minValue);
         return coord;
-    }
+    };
+
     calculateToggleCoordToVal(coord: number): number {
         let scaleSize = this.info.isVertical ? this.scale.getBoundingClientRect().height : this.scale.getBoundingClientRect().width;
         let toggleSize = this.info.isVertical ? this.scale.lastElementChild.getBoundingClientRect().height : this.scale.lastElementChild.getBoundingClientRect().width;
         let val = Math.round(((coord * (this.info.maxValue - this.info.minValue)) / (scaleSize - toggleSize)) + this.info.minValue);
         return val;
-    }
+    };
+
     rotateVertical() {
         this.container.classList.add("vertical");
         this.scale.classList.add("vertical");
@@ -285,7 +354,8 @@ class Scale extends InterfaceElement {
         this.toggles.forEach((toggle) => {
             toggle.rotateVertical();
         })
-    }
+    };
+
     rotateHorizontal() {
         this.container.classList.remove("vertical");
         this.scale.classList.remove("vertical");
@@ -293,25 +363,73 @@ class Scale extends InterfaceElement {
         this.toggles.forEach((toggle) => {
             toggle.rotateHorizontal();
         })
-    }
+    };
 
-}
+    togObserverUpdateLabelFunc(msg: toggleMsg) {
+        let val = this.calculateToggleCoordToVal(msg.newCoord);
+        this.toggles[msg.order].updateLabel(val);
+        if (msg.order === 0) {
+            this.togCoords.firstTog = msg.newCoord;
+        } else if (msg.order === 1) {
+            this.togCoords.secTog = msg.newCoord;
+        }
+        let start = this.info.isRange ? this.togCoords.firstTog : 0;
+        let fin = this.info.isRange ? this.togCoords.secTog : this.togCoords.firstTog;
+        this.progressBarSetCoords(start, fin);
+
+    };
+    togObserverFunc(msg: toggleMsg) {
+//! оповестить Вид
+        
+        console.log(this.togCoords);
+        this.updateDradAndDropInfo();
+        
+    }
+};
 
 class Toggle extends InterfaceElement {
     label: HTMLElement;
     info: {
         idNum: number,
         isVertical: boolean,
+        order: number,
     };
-    constructor(info: sliderInfo, value: number) {
+    dragAndDropInfo: {
+        startEdge: number,
+        finEdge: number,
+        scaleStart: number,
+    }
+
+    observers: Observer[];
+    sendMessage(msg: toggleMsg) {
+        for (var i = 1, len = this.observers.length; i < len; i++) {
+            this.observers[i].update(msg);
+        }
+        console.log(`toggle ${this.info.order} message sended`, msg);
+    };
+    sendMessageToUpdateLabel(msg: toggleMsg) {
+        this.observers[0].update(msg);
+    }
+    addObserver(observer: Observer) {
+        this.observers.push(observer);
+    };
+
+    constructor(info: sliderInfo, value: number, order: number) {
         super();
+        this.observers = [];
         this.info = {
             idNum: info.idNum,
             isVertical: info.isVertical,
+            order: order,
+        }
+        this.dragAndDropInfo = {
+            startEdge: undefined,
+            finEdge: undefined,
+            scaleStart: undefined,
         }
         this.create(value);
-        console.log("toggle info", this.info);
     }
+
     create(value: number) {
         this.container = this.createElement("div", "slider__toggle", this.info.idNum) as HTMLElement;
         this.label = (this.createElement("div", "slider__toggleLabel", this.info.idNum)) as HTMLElement;
@@ -321,30 +439,25 @@ class Toggle extends InterfaceElement {
             this.container.classList.add("vertical");
             this.label.classList.add("vertical");
         }
-    }
-    replaceIdWithElem() {
-
-    }
+    };
     rotateVertical() {
         this.container.classList.add("vertical");
         this.label.classList.add("vertical");
-    }
+    };
     rotateHorizontal() {
         this.container.classList.remove("vertical");
         this.label.classList.remove("vertical");
-    }
+    };
     remove() {
         this.container.remove;
-    }
-    setPosition(coord: number, value: number): void {
+    };
+    setPosition(coord: number): void {
         if (this.info.isVertical) {
             this.container.style.top = coord + "px";
         } else {
             this.container.style.left = coord + "px";
         }
-        this.label.innerText = value + "";
     };
-
     getCoord(): number {
         let coord = this.container.getBoundingClientRect().left;
         if (this.info.isVertical) {
@@ -352,17 +465,83 @@ class Toggle extends InterfaceElement {
         }
         return coord;
     };
+
+    updateLabel(value: number | string) {
+        this.label.innerText = value + "";
+    }
     updateInfo(info: sliderInfo) {
         this.info.idNum = info.idNum;
         this.info.isVertical = info.isVertical;
+    };
+    updateDragAndDropInfo(startEdge: number, finEdge: number, scaleStart: number) {
+        this.dragAndDropInfo.startEdge = startEdge;
+        this.dragAndDropInfo.finEdge = finEdge;
+        this.dragAndDropInfo.scaleStart = scaleStart;
     }
+    addDragAndDrop() {
+        let that = this, 
+            toggle = this.container;
+
+        toggle.addEventListener('mousedown', function (event: MouseEvent) {
+            let shift: number,
+                newCoord: number,
+                eventClient: number,
+                // togSize = that.info.isVertical ? toggle.getBoundingClientRect().height : toggle.getBoundingClientRect().width,
+                msg: toggleMsg;
+
+            event.preventDefault();
+
+            if (that.info.isVertical) {
+                shift = event.clientY - toggle.getBoundingClientRect().top;
+            } else {
+                shift = event.clientX - toggle.getBoundingClientRect().left;
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+
+            function onMouseMove(event: MouseEvent) {
+                if (that.info.isVertical) {
+                    eventClient = event.clientY;
+                } else {
+                    eventClient = event.clientX;
+                }
+                let scaleStart = that.info.isVertical ? toggle.parentElement.getBoundingClientRect().top : toggle.parentElement.getBoundingClientRect().left;
+                newCoord = eventClient - shift - that.dragAndDropInfo.scaleStart;
+                if (newCoord < that.dragAndDropInfo.startEdge) {
+                    newCoord = that.dragAndDropInfo.startEdge;
+                }
+                if (newCoord > that.dragAndDropInfo.finEdge) {
+                    newCoord = that.dragAndDropInfo.finEdge;
+                }
+                if (that.info.isVertical) {
+                    toggle.style.top = newCoord + "px";
+                } else {
+                    toggle.style.left = newCoord + "px";
+                }
+                msg = {
+                    order: that.info.order,
+                    newCoord: newCoord,
+                }  
+                that.sendMessageToUpdateLabel(msg);
+            };
+            function onMouseUp() {
+                document.removeEventListener('mouseup', onMouseUp);
+                document.removeEventListener('mousemove', onMouseMove);
+                that.sendMessage(msg);
+            };
+        });
+        this.container.addEventListener("ondragstart", function () {
+            return false;
+        });
+    };
 }
 
 class ControlPanel extends InterfaceElement {
     constructor() {
         super();
     }
-}
+};
 
 let containers = document.querySelectorAll(".slider-here");
 
@@ -373,7 +552,7 @@ for (let [index, elem] of containers.entries()) {
         maxValue: 100,
         step: 5,
         isRange: true,
-        startTogVals: [12, 75],
+        startTogVals: [25, 75],
         measure: "standard",
         isVertical: false,
     }, elem);
