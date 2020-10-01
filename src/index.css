@@ -24,6 +24,8 @@ h1 {
 
 .slider__controlElements {
     width: 30%;
+    max-width: 250px;
+    min-width: 210px;
     background-color: rgba(38, 38, 38, 0.4);
     height: 100%;
     display: flex;
@@ -38,16 +40,16 @@ h1 {
 
 
 
-.slider__valueCheckbox {
+.slider__showValsCheck {
     display: none;
 }
 
-.slider__valueCheckboxLabel {
+.slider__showValsCheckLabel {
     text-indent: 20px;
     width: 100%;
     position: relative;
 }
-.slider__valueCheckboxLabel::before {
+.slider__showValsCheckLabel::before {
     content: '';
     position: absolute;
     width: 15px;
@@ -59,7 +61,7 @@ h1 {
     background-color: whitesmoke;
 }
 
-.slider__valueCheckbox:checked+.slider__valueCheckboxLabel::after {
+.slider__showValsCheck:checked+.slider__showValsCheckLabel::after {
     content: '';
     position: absolute;
     top: 5px;
@@ -72,10 +74,9 @@ h1 {
 
 }
 
-
 .slider__input {
-    width: 50px;
     margin-left: 5px;
+    width: 70%;
 }
 
 .slider__input_min {
@@ -91,23 +92,23 @@ h1 {
     align-items: center;
 }
 
-.slider__viewRadioContainer {
+.slider__radioContainer {
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
 }
 
-.slider__viewRadioContainer input {
+.slider__radioContainer input {
     display: none;
 }
 
-.slider__viewRadioLabel {
+.slider__radioLabel {
     display: flex;
     position: relative;
     flex-direction: row;
     align-items: center;
 }
-.slider__viewRadioLabel::before {
+.slider__radioLabel::before {
     content:'';
     margin-right: 5px;
     margin-top: 1px;
@@ -118,7 +119,7 @@ h1 {
     background-color: whitesmoke;
 }
 
-input:checked+.slider__viewRadioLabel::after {
+input:checked+.slider__radioLabel::after {
     content: '';
     position: absolute;
     align-content: center;
@@ -144,7 +145,7 @@ input:checked+.slider__viewRadioLabel::after {
     display: inline-block;
     width: 10px;
     margin-left: 5px;
-    margin-right: 5px;
+    margin-right: 10px;
 }
 
 .slider__toggleValueField {
