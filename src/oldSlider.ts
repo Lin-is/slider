@@ -1012,3 +1012,24 @@ export { SliderInterface };
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Round a value to the closest 'to'.
+// function closest(value, to) {
+//     return Math.round(value / to) * to;
+// }
+
+
