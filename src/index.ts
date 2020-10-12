@@ -1061,7 +1061,7 @@ for (let [index, elem] of containers.entries()) {
         isRange: true,
         togVals: [25, 75],
         measure: "standard",
-        isVertical: true,
+        isVertical: false,
     }, elem);
 }
 
