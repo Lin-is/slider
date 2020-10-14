@@ -1,5 +1,5 @@
 import './index.css'
-import { valHooks } from 'jquery';
+import { isArray, valHooks } from 'jquery';
 "use strict";
 
 
@@ -20,7 +20,7 @@ interface toggleMsg {
     newCoord: number,
 }
 
-interface trackMsg {
+interface scaleMsg {
     order: number,
     newVal: string,
 
@@ -242,24 +242,25 @@ class View {
     controlPanel: ControlPanel;
     container: HTMLElement;
     observers: Array<Observer>;
-    trackObserver: Observer;
+    scaleObserver: Observer;
 
     constructor(info: sliderInfo, parentElement: Element) {
         this.info = info;
         this.observers = [];
         this.scale = new Scale(this.info);
         this.controlPanel = new ControlPanel(info);
-        this.trackObserver = new Observer(this.trackObserverFunc.bind(this));
+        this.scaleObserver = new Observer(this.scaleObserverFunc.bind(this));
         this.render(parentElement);
         this.scale.renderSecStage();
         this.scale.addDragAndDrop();
+        this.scale.renderScale();
+        this.scale.showScale(false);
         this.controlPanel.addToggleInput(this.scale.toggles[0].info.order, this.info.togVals[0] + "", this.togInputListener.bind(this));
         if (this.info.isRange) {
             this.controlPanel.addToggleInput(this.scale.toggles[1].info.order, this.info.togVals[1] + "", this.togInputListener.bind(this));
         }
         this.addListeners();
-        this.scale.addObserver(this.trackObserver);
-        this.dontClicktrackOnToggle();
+        this.scale.addObserver(this.scaleObserver);
     };
 
     render(parentElement: Element) {
@@ -273,7 +274,8 @@ class View {
     };
 
     addListeners() {
-        this.controlPanel.showToggleLabelsCheckbox.addEventListener("change", this.togLabelsCheckListener.bind(this))
+        this.controlPanel.showToggleLabelsCheckbox.addEventListener("change", this.togLabelsCheckListener.bind(this));
+        this.controlPanel.showScaleCheckbox.addEventListener("change", this.scaleCheckListener.bind(this));
         this.controlPanel.isVerticalRadio.addEventListener("change", this.rotateVerticalListener.bind(this));
         this.controlPanel.isHorizontalRadio.addEventListener("change", this.rotateHorizontalListener.bind(this));
         this.controlPanel.isSingleValRadio.addEventListener("change", this.singleValListener.bind(this));
@@ -285,21 +287,6 @@ class View {
         this.scale.track.addEventListener("click", this.trackClickListener.bind(this));
     };
 
-    dontClicktrackOnToggle() {
-        let that = this;
-        this.scale.toggles.forEach(toggle => {
-            toggle.container.addEventListener("mouseenter", () => {
-                that.scale.track.removeEventListener("click", that.trackClickListener);
-                // console.log("remove listener")
-            });
-            toggle.container.addEventListener("mouseleave", () => {
-                that.scale.track.addEventListener("click", that.trackClickListener.bind(that));
-                // console.log("add listener");
-            });
-        });
-    }
-
-
 
     togLabelsCheckListener(e: MouseEvent) {
         let checkbox = e.currentTarget as HTMLInputElement;
@@ -309,6 +296,10 @@ class View {
             this.scale.showTogLabels(checkbox.checked);
         }
     };
+    scaleCheckListener(e: MouseEvent) {
+        let checkbox = e.currentTarget as HTMLInputElement;
+        this.scale.showScale(checkbox.checked);
+    }
     rotateVerticalListener(e: MouseEvent) {
         let radio = e.currentTarget as HTMLInputElement;
         if (radio.checked) {
@@ -328,7 +319,7 @@ class View {
         if (radio.checked) {
             this.sendMessage("isRange", false);
             this.updateAllTogInputs();
-            this.scale.updatetrack();
+            this.scale.updateTrack();
             if (this.info.togVals.length === 2) {
                 this.info.togVals.pop();
             }
@@ -337,22 +328,19 @@ class View {
         if (check.checked) {
             this.scale.showTogLabels(true);
         }
-        this.dontClicktrackOnToggle();
     };
     rangeValListener(e: MouseEvent) {   //!
         let radio = e.currentTarget as HTMLInputElement;
-        let that = this;
         if (radio.checked && this.controlPanel.toggleInputsContainer.children.length === 1) {
             this.sendMessage("isRange", true);
             this.controlPanel.addToggleInput(1, this.info.maxValue + "", this.togInputListener.bind(this));
             this.info.togVals.push(this.info.maxValue);
-            this.scale.updatetrack();
+            this.scale.updateTrack();
         }
         let check = this.controlPanel.showToggleLabelsCheckbox as HTMLInputElement;
         if (check.checked) {
             this.scale.showTogLabels(true);
         }
-        this.dontClicktrackOnToggle();
     };
     togInputListener(e: MouseEvent) {
         let input = e.currentTarget as HTMLInputElement;
@@ -379,8 +367,6 @@ class View {
         let newVal = input.value;
         this.sendMessage("step", newVal);
     }
-
-
     trackClickListener(e: MouseEvent) {
         let halfTog = this.info.isVertical ? (this.scale.toggles[0].container.offsetHeight / 2) : 
                                              (this.scale.toggles[0].container.offsetWidth / 2);
@@ -433,7 +419,7 @@ class View {
     addObserver(observer: Observer) {
         this.observers.push(observer);
     };
-    trackObserverFunc(msg: trackMsg) {
+    scaleObserverFunc(msg: scaleMsg) {
         this.updateTogInput(msg.order, msg.newVal);
     };
 }
@@ -448,6 +434,8 @@ class View {
 
 class Scale extends InterfaceElement {
     track: HTMLElement;
+    scale: HTMLElement;
+    scaleContainer: HTMLElement;
     trackID: string;
     info: sliderInfo;
     toggles: Array<Toggle>;
@@ -515,14 +503,15 @@ class Scale extends InterfaceElement {
             this.toggles[i].updateDragAndDropInfo(startEdge, finEdge, trackStart, this.calcStepSize());
         }
     };
-    updatetrack() {  //remove toggles and create again
+
+    updateTrack() {  //remove toggles and create again
         this.removeToggles();
         this.renderSecStage();
         this.addDragAndDrop();
     };
 
     renderFirstStage() {    //add track container and track
-        this.container = this.createElement("div", "slider__scaleContainer", this.info.idNum) as HTMLElement;
+        this.container = this.createElement("div", "slider__trackContainer", this.info.idNum) as HTMLElement;
         this.track = (this.createElement("div", "slider__track", this.info.idNum)) as HTMLElement;
         if (this.info.isVertical) {
             this.container.classList.add("vertical");
@@ -530,6 +519,7 @@ class Scale extends InterfaceElement {
         }
         this.container.append(this.track);
         this.trackID = this.track.getAttribute("id");
+        
     };
     renderSecStage() {  //add toggles, set toggles first positions
         let that = this;
@@ -541,6 +531,77 @@ class Scale extends InterfaceElement {
             index === 0 ? that.togCoords.firstTog = togCoord : that.togCoords.secTog = togCoord;
         });
     };
+
+    renderScale() {
+        let largeDivNum = 5;
+        let regDivNum = 4;
+        this.scaleContainer = this.createElement("div", "slider__scaleContainer", this.info.idNum) as HTMLElement;
+        this.scale = this.createElement("div", "slider__scale", this.info.idNum) as HTMLElement;
+
+        if (this.info.isVertical) {
+            this.scale.classList.add("vertical");
+            this.scaleContainer.classList.add("vertical");
+        }
+
+        this.scaleContainer.append(this.scale);
+        this.container.append(this.scaleContainer);
+
+        let largePxSize = this.scale.offsetWidth / largeDivNum;
+
+        if (this.info.isVertical){
+            largePxSize = this.scale.offsetHeight / largeDivNum;
+        }
+        let regPxSize = largePxSize / regDivNum;
+
+        this.renderScaleDivisions(largeDivNum, largePxSize, true);
+        this.renderScaleDivisions(regDivNum * largeDivNum, regPxSize, false);
+    }
+    showScale(toShow: boolean){
+        if (toShow && this.scaleContainer.classList.contains("hidden")) {
+            this.scaleContainer.classList.remove("hidden");
+        }
+        if (!toShow && !this.scaleContainer.classList.contains("hidden")) {
+            this.scaleContainer.classList.add("hidden");
+        }
+    }
+    reloadScale() { 
+        this.scaleContainer.remove();
+        this.renderScale();
+    }
+    renderScaleDivisions(num: number, pxSize: number, isLarge: boolean) {
+        //!доделать
+        for (let i = 0; i <= num; i++) {
+            let division = (isLarge ? this.createElement("div", "slider__scaleDivision slider__scaleDivision_large", this.info.idNum) : this.createElement("div", "slider__scaleDivision slider__scaleDivision_reg", this.info.idNum)) as HTMLElement;
+            if (this.info.isVertical) {
+                division.classList.add("vertical");
+            }
+            let coord = pxSize * i;
+            console.log(pxSize);
+            console.log("i:", i, "coord", coord);
+            console.log(this.scale.getBoundingClientRect().top);
+           
+            if (this.info.isVertical) {
+                division.style.top = coord + "px";
+            } else {
+                division.style.left = coord + "px";
+            }
+
+            if (isLarge) {
+                let divLabel = this.createElement("label", "slider__scaleDivLabel", this.info.idNum);
+                divLabel.setAttribute("for", divLabel.id);
+                if (this.info.isVertical) {
+                    divLabel.classList.add("vertical");
+                }
+                divLabel.innerHTML = this.calculateToggleCoordToVal(coord, true) + "";
+                division.append(divLabel);
+                
+            }
+            this.scale.append(division);
+            console.log(division.getBoundingClientRect().top);
+        }
+    }
+
+
     addToggles() {  // create toggles and progress bar
         let progBarStartCoord = this.info.isVertical ? this.getCoords().left : this.getCoords().top,
             firstTog = new Toggle(this.info, this.info.togVals[0], 0);
@@ -607,7 +668,7 @@ class Scale extends InterfaceElement {
     };
     moveClosestTog(clickCoord: number) {
         if (this.togCoords.secTog) {
-            Math.abs(this.togCoords.secTog - clickCoord) > Math.abs(this.togCoords.firstTog - clickCoord) ? 
+            Math.abs(this.togCoords.secTog - clickCoord) >= Math.abs(this.togCoords.firstTog - clickCoord) ? 
                     this.moveToggle(this.calculateToggleCoordToVal(clickCoord), 0) :
                     this.moveToggle(this.calculateToggleCoordToVal(clickCoord), 1);
         } else {
@@ -615,14 +676,6 @@ class Scale extends InterfaceElement {
         }
     }
     addDragAndDrop() {  
-
-
-        // stepSize = Math.round((track.offsetWidth - toggle.offsetWidth) / stepNumber);
-        // if (isVertical) {
-        //     stepSize = (track.getBoundingClientRect().height - toggle.getBoundingClientRect().height) / stepNumber;
-        // }
-        // let finCoord = Math.round(newCoord / stepSize) * stepSize;
-
         let that = this;
         that.updateDradAndDropInfo();
         this.toggles.forEach((toggle) => {
@@ -685,11 +738,13 @@ class Scale extends InterfaceElement {
         let coord = ((calcVal - this.info.minValue) * (trackSize - toggleSize)) / (this.info.maxValue - this.info.minValue);
         return coord;
     };
-    calculateToggleCoordToVal(coord: number): number {
+    calculateToggleCoordToVal(coord: number, toDivLable = false): number {
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;
         let toggleSize = this.info.isVertical ? this.track.lastElementChild.getBoundingClientRect().height : this.track.lastElementChild.getBoundingClientRect().width;
         let val = Math.round(((coord * (this.info.maxValue - this.info.minValue)) / (trackSize - toggleSize)) + this.info.minValue);
-        // let val = ((coord * (this.info.maxValue - this.info.minValue)) / (trackSize - toggleSize)) + this.info.minValue;
+        if (toDivLable) {
+            val = Math.round(((coord * (this.info.maxValue - this.info.minValue)) / (trackSize)) + this.info.minValue);
+        }
         return val;
     };
     rotateVertical() {
@@ -702,6 +757,7 @@ class Scale extends InterfaceElement {
         this.progressBar.style.width = "100%";
         this.progressBar.style.left = "0px";
         this.updateProgressBar();
+        this.reloadScale();
     };
     rotateHorizontal() {
         this.container.classList.remove("vertical");
@@ -713,6 +769,7 @@ class Scale extends InterfaceElement {
         this.progressBar.style.height = "100%";
         this.progressBar.style.top = "0px";
         this.updateProgressBar();
+        this.reloadScale();
     };
 
 
@@ -879,7 +936,9 @@ class Toggle extends InterfaceElement {
     };
     addDragAndDrop() {
         let that = this, 
-            toggle = this.container;
+            toggle = this.container,
+            halfTog = this.info.isVertical ? toggle.getBoundingClientRect().top / 2 : toggle.getBoundingClientRect().left / 2;
+        
 
         toggle.addEventListener('mousedown', function (event: MouseEvent) {
             let shift: number,
@@ -949,6 +1008,7 @@ class Toggle extends InterfaceElement {
 class ControlPanel extends InterfaceElement {
 
     showToggleLabelsCheckbox: HTMLElement;
+    showScaleCheckbox: HTMLElement;
     minInput: HTMLElement;
     maxInput: HTMLElement;
     stepInput: HTMLElement;
@@ -987,7 +1047,8 @@ class ControlPanel extends InterfaceElement {
         let inputsContainer = this.createElement("div", "slider__inputsContainer", this.info.idNum);
         let viewRadioContainer = this.createElement("div", "slider__radioContainer", this.info.idNum);
 
-        this.showToggleLabelsCheckbox = this.createInput("slider__showValsCheck", "checkbox");
+        this.showToggleLabelsCheckbox = this.createInput("slider__check slider__showValsCheck", "checkbox");
+        this.showScaleCheckbox = this.createInput("slider__check slider__showScaleCheck", "checkbox");
         this.minInput = this.createInput("slider__input slider__input_min", "text", "", this.info.minValue + "");
         this.maxInput = this.createInput("slider__input slider__input_max", "text", "", this.info.maxValue + "");
         this.stepInput = this.createInput("slider__input slider__input_step", "text", "", this.info.step + "");
@@ -996,7 +1057,8 @@ class ControlPanel extends InterfaceElement {
         this.isSingleValRadio = this.createInput("slider__isRangeRadio slider__isRangeRadio_single", "radio", "slider__isRangeRadio-" + this.info.idNum, "single", "");
         this.isRangeValRadio = this.createInput("slider__isRangeRadio slider__isRangeRadio_range", "radio", "slider__isRangeRadio-" + this.info.idNum, "range", "");
         
-        let checkboxLabel = this.createLabel("slider__showValsCheckLabel", "Показать значения ползунков", this.showToggleLabelsCheckbox.id);
+        let checkboxLabel = this.createLabel("slider__checkLabel slider__showValsCheckLabel", "Показать значения ползунков", this.showToggleLabelsCheckbox.id);
+        let scaleChecboxLabel = this.createLabel("slider__checkLabel slider__showScaleCheckLabel", "Показать шкалу", this.showScaleCheckbox.id);
         let minInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_min", "Min:", this.minInput.id);
         let maxInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_max", "Max:", this.maxInput.id);
         let stepInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_step", "Шаг:", this.maxInput.id);
@@ -1012,6 +1074,9 @@ class ControlPanel extends InterfaceElement {
 
         this.container.append(this.showToggleLabelsCheckbox);
         this.container.append(checkboxLabel);
+
+        this.container.append(this.showScaleCheckbox);
+        this.container.append(scaleChecboxLabel);
 
         this.container.append(inputsContainer);
         inputsContainer.append(minInputLabel);
