@@ -284,9 +284,15 @@ class View {
         this.controlPanel.stepInput.addEventListener("change", this.stepInputListener.bind(this));
 
         this.scale.track.addEventListener("click", this.trackClickListener.bind(this));
+        this.scaleDivsAddListeners();
     };
 
-
+    scaleDivsAddListeners(){
+        let scaleDivs = this.scale.scale.children;
+        for (let div of scaleDivs) {
+            div.addEventListener("click", this.scaleDivClickListener.bind(this));
+        }
+    }
     togLabelsCheckListener(e: MouseEvent) {
         let checkbox = e.currentTarget as HTMLInputElement;
         if (checkbox.checked) {
@@ -305,12 +311,26 @@ class View {
             this.sendMessage("isVertical", true);
             this.scale.rotateVertical();
         }
+        this.scaleDivsAddListeners();
+        let check = this.controlPanel.showScaleCheckbox as HTMLInputElement;
+        if (check.checked) {
+            this.scale.showScale(true);
+        } else {
+            this.scale.showScale(false);
+        }
     };
     rotateHorizontalListener(e: MouseEvent) { 
         let radio = e.currentTarget as HTMLInputElement;
         if (radio.checked) {
             this.sendMessage("isVertical", false);
             this.scale.rotateHorizontal();
+        }
+        this.scaleDivsAddListeners();
+        let check = this.controlPanel.showScaleCheckbox as HTMLInputElement;
+        if (check.checked) {
+            this.scale.showScale(true);
+        } else {
+            this.scale.showScale(false);
         }
     };
     singleValListener(e: MouseEvent) {
@@ -328,7 +348,7 @@ class View {
             this.scale.showTogLabels(true);
         }
     };
-    rangeValListener(e: MouseEvent) {   //!
+    rangeValListener(e: MouseEvent) {  
         let radio = e.currentTarget as HTMLInputElement;
         if (radio.checked && this.controlPanel.toggleInputsContainer.children.length === 1) {
             this.sendMessage("isRange", true);
@@ -346,13 +366,13 @@ class View {
         let newVal = input.value;
         this.scale.moveToggle(+newVal, +input.getAttribute("data-toggleNum"));
     };
-
     minInputListener(e: MouseEvent) {
         let input = e.target as HTMLInputElement;
         let newVal = input.value;
         this.sendMessage("minValue", newVal);
         this.scale.recalcTogCoords();
         this.scale.recalcTogPositions();
+        this.scale.updateScaleLabels();
     }
     maxInputListener(e: MouseEvent) {
         let input = e.target as HTMLInputElement;
@@ -360,6 +380,7 @@ class View {
         this.sendMessage("maxValue", newVal);
         this.scale.recalcTogCoords();
         this.scale.recalcTogPositions();
+        this.scale.updateScaleLabels();
     }
     stepInputListener(e: MouseEvent) {
         let input = e.target as HTMLInputElement;
@@ -378,10 +399,22 @@ class View {
         }
         if (this.info.isRange && newCoord > this.scale.togCoords.secTog - halfTog && newCoord < this.scale.togCoords.secTog + halfTog) {
             return;
+        } 
+        this.scale.moveClosestTog(newCoord);
+    }
+    scaleDivClickListener(e: MouseEvent) {
+        let div = e.target as HTMLElement;
+        if (div.tagName === "LABEL") {
+            div = div.parentElement;
         }
+
+        let newCoord = this.info.isVertical ? div.getBoundingClientRect().top - this.scale.track.getBoundingClientRect().top :
+                                              div.getBoundingClientRect().left - this.scale.track.getBoundingClientRect().left;
         
         this.scale.moveClosestTog(newCoord);
     }
+
+
 
 
     updateTogInput(order: number, newVal: string) {
@@ -457,18 +490,29 @@ class Scale extends InterfaceElement {
         this.labelUpdateObserver = new Observer(this.togObserverUpdateLabelFunc.bind(this));
         this.togObserver = new Observer(this.togObserverFunc.bind(this));
     };
-    sendMessage(order: number, newVal: string, firstTogVal?: number | string, secTogVal?: number | string) {
-        let msg ={
-            order: order,
-            newVal: newVal,
+
+    renderFirstStage() {    //add track container and track
+        this.container = this.createElement("div", "slider__trackContainer", this.info.idNum) as HTMLElement;
+        this.track = (this.createElement("div", "slider__track", this.info.idNum)) as HTMLElement;
+        if (this.info.isVertical) {
+            this.container.classList.add("vertical");
+            this.track.classList.add("vertical");
         }
-        for (let i = 0, len = this.observers.length; i < len; i++) {
-            this.observers[i].update(msg);
-        }
+        this.container.append(this.track);
+        this.trackID = this.track.getAttribute("id");
+
     };
-    addObserver(observer: Observer) {
-        this.observers.push(observer);
+    renderSecStage() {  //add toggles, set toggles first positions
+        let that = this;
+        this.addToggles();
+        this.toggles.forEach((toggle, index) => {
+            let togCoord = that.calculateToggleValToCoord(that.info.togVals[index]);
+            toggle.setPosition(togCoord);
+            toggle.updateLabel(that.info.togVals[index]);
+            index === 0 ? that.togCoords.firstTog = togCoord : that.togCoords.secTog = togCoord;
+        });
     };
+
 
     updateInfo(newInfo: sliderInfo) {
         this.info = newInfo;
@@ -476,6 +520,7 @@ class Scale extends InterfaceElement {
         this.toggles.forEach(toggle => {
             toggle.updateInfo(newInfo);
         });
+        this.updateScaleLabels();
     };
     updateDradAndDropInfo() {  //update info about start and fin coords for every toggle drag and drop function
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width,
@@ -497,34 +542,29 @@ class Scale extends InterfaceElement {
             this.toggles[i].updateDragAndDropInfo(startEdge, finEdge, trackStart, this.calcStepSize());
         }
     };
-
     updateTrack() {  //remove toggles and create again
         this.removeToggles();
         this.renderSecStage();
         this.addDragAndDrop();
     };
-
-    renderFirstStage() {    //add track container and track
-        this.container = this.createElement("div", "slider__trackContainer", this.info.idNum) as HTMLElement;
-        this.track = (this.createElement("div", "slider__track", this.info.idNum)) as HTMLElement;
-        if (this.info.isVertical) {
-            this.container.classList.add("vertical");
-            this.track.classList.add("vertical");
+    updateScaleLabels() {
+        let divs = this.scale.children;
+        for (let division of divs) {
+            let htmlDiv = division as HTMLElement;
+            if (division.children.length > 0) {
+                let coord = parseFloat(this.info.isVertical ? htmlDiv.style.top : htmlDiv.style.left);
+                let newVal = this.calculateToggleCoordToVal(coord);
+                division.firstElementChild.innerHTML = newVal + "";
+            }
         }
-        this.container.append(this.track);
-        this.trackID = this.track.getAttribute("id");
-        
     };
-    renderSecStage() {  //add toggles, set toggles first positions
-        let that = this;
-        this.addToggles();
-        this.toggles.forEach((toggle, index) => {
-            let togCoord = that.calculateToggleValToCoord(that.info.togVals[index]);
-            toggle.setPosition(togCoord);
-            toggle.updateLabel(that.info.togVals[index]);
-            index === 0 ? that.togCoords.firstTog = togCoord : that.togCoords.secTog = togCoord;
-        });
+    updateProgressBar() {
+        let start = this.info.isRange ? this.togCoords.firstTog : 0;
+        let fin = this.info.isRange ? this.togCoords.secTog : this.togCoords.firstTog;
+        this.progressBarSetCoords(start, fin);
     };
+
+
 
     renderScale() {
         let largeDivNum = 4;
@@ -549,19 +589,7 @@ class Scale extends InterfaceElement {
 
         this.renderScaleDivisions(largeDivNum, largePxSize, true);
         this.renderScaleDivisions(regDivNum * largeDivNum, regPxSize, false);
-    }
-    showScale(toShow: boolean){
-        if (toShow && this.scaleContainer.classList.contains("hidden")) {
-            this.scaleContainer.classList.remove("hidden");
-        }
-        if (!toShow && !this.scaleContainer.classList.contains("hidden")) {
-            this.scaleContainer.classList.add("hidden");
-        }
-    }
-    reloadScale() { 
-        this.scaleContainer.remove();
-        this.renderScale();
-    }
+    };
     renderScaleDivisions(num: number, pxSize: number, isLarge: boolean) {
         for (let i = 0; i <= num; i++) {
             let division = (isLarge ? this.createElement("div", "slider__scaleDivision slider__scaleDivision_large", this.info.idNum) : this.createElement("div", "slider__scaleDivision slider__scaleDivision_reg", this.info.idNum)) as HTMLElement;
@@ -569,26 +597,44 @@ class Scale extends InterfaceElement {
                 division.classList.add("vertical");
             }
             let coord = pxSize * i;
-           
+
             if (this.info.isVertical) {
                 division.style.top = coord + "px";
             } else {
                 division.style.left = coord + "px";
             }
 
+            let divLabel: HTMLElement;
             if (isLarge) {
-                let divLabel = this.createElement("label", "slider__scaleDivLabel", this.info.idNum);
-                divLabel.setAttribute("for", divLabel.id);
-                if (this.info.isVertical) {
-                    divLabel.classList.add("vertical");
-                }
-                divLabel.innerHTML = this.calculateToggleCoordToVal(coord) + "";
-                division.append(divLabel);
+                divLabel = this.createElement("label", "slider__scaleDivLabel", this.info.idNum) as HTMLElement;
                 
+            } else {
+                divLabel = this.createElement("label", "slider__scaleDivLabel slider__scaleDivLabel_reg", this.info.idNum) as HTMLElement;
             }
+
+            divLabel.setAttribute("for", division.id);
+            if (this.info.isVertical) {
+                divLabel.classList.add("vertical");
+            }
+            divLabel.innerHTML = this.calculateToggleCoordToVal(coord) + "";
+
+            division.append(divLabel);
             this.scale.append(division);
         }
-    }
+    };
+    showScale(toShow: boolean){
+        if (toShow && this.scaleContainer.classList.contains("hidden")) {
+            this.scaleContainer.classList.remove("hidden");
+        }
+        if (!toShow && !this.scaleContainer.classList.contains("hidden")) {
+            this.scaleContainer.classList.add("hidden");
+        }
+    };
+    reloadScale() { 
+        this.scaleContainer.remove();
+        this.renderScale();
+    };
+
 
 
     addToggles() {  // create toggles and progress bar
@@ -664,28 +710,14 @@ class Scale extends InterfaceElement {
             this.moveToggle(this.calculateToggleCoordToVal(clickCoord), 0);
         }
     }
-    addDragAndDrop() {  
-        let that = this;
-        that.updateDradAndDropInfo();
-        this.toggles.forEach((toggle) => {
-            toggle.addDragAndDrop();
-        });
-    };
     removeToggles(){
         this.toggles = [];
         while (this.track.children.length > 0) {
             this.track.lastElementChild.remove();
         }
     };
-    calcStepSize(): number {
-        let stepSize: number;
-        let stepNumber = (this.info.maxValue - this.info.minValue) / this.info.step;
-        stepSize = (this.track.getBoundingClientRect().width - this.toggles[0].container.offsetWidth) / stepNumber;
-        if (this.info.isVertical) {
-            stepSize = (this.track.getBoundingClientRect().height - this.toggles[0].container.offsetHeight) / stepNumber;
-        }
-        return stepSize;
-    }
+
+
     addProgressBar(startCoord: number, endCoord: number){
         this.progressBar = this.createElement("div", "slider__progressBar", this.info.idNum) as HTMLElement;
         if (this.info.isVertical) {
@@ -714,12 +746,24 @@ class Scale extends InterfaceElement {
             }
         }
     };
-    updateProgressBar() {
-        let start = this.info.isRange ? this.togCoords.firstTog : 0;
-        let fin = this.info.isRange ? this.togCoords.secTog : this.togCoords.firstTog;
-        this.progressBarSetCoords(start, fin);
-    };
 
+
+    addDragAndDrop() {
+        let that = this;
+        that.updateDradAndDropInfo();
+        this.toggles.forEach((toggle) => {
+            toggle.addDragAndDrop();
+        });
+    };
+    calcStepSize(): number {
+        let stepSize: number;
+        let stepNumber = (this.info.maxValue - this.info.minValue) / this.info.step;
+        stepSize = (this.track.getBoundingClientRect().width - this.toggles[0].container.offsetWidth) / stepNumber;
+        if (this.info.isVertical) {
+            stepSize = (this.track.getBoundingClientRect().height - this.toggles[0].container.offsetHeight) / stepNumber;
+        }
+        return stepSize;
+    };
     calculateToggleValToCoord(val: number | string): number {
         let calcVal = +val;
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;        // let coord = ((calcVal - this.info.minValue) * (trackSize - toggleSize)) / (this.info.maxValue - this.info.minValue);
@@ -732,6 +776,8 @@ class Scale extends InterfaceElement {
         let val = Math.round(((coord * (this.info.maxValue - this.info.minValue)) / (trackSize)) + this.info.minValue);
         return val;
     };
+
+
     rotateVertical() {
         this.container.classList.add("vertical");
         this.track.classList.add("vertical");
@@ -760,6 +806,19 @@ class Scale extends InterfaceElement {
     };
 
 
+
+    sendMessage(order: number, newVal: string, firstTogVal?: number | string, secTogVal?: number | string) {
+        let msg = {
+            order: order,
+            newVal: newVal,
+        }
+        for (let i = 0, len = this.observers.length; i < len; i++) {
+            this.observers[i].update(msg);
+        }
+    };
+    addObserver(observer: Observer) {
+        this.observers.push(observer);
+    };
     //updating data about tog positions in movement; using for updating tog labels and vals of tog inputs
     togObserverUpdateLabelFunc(msg: toggleMsg) { 
         let val = this.calculateToggleCoordToVal(msg.newCoord);
@@ -772,7 +831,6 @@ class Scale extends InterfaceElement {
         this.updateProgressBar();
         this.sendMessage(msg.order, val + "");
     };
-
     togObserverFunc(msg: toggleMsg) {
         let val = this.calculateToggleCoordToVal(msg.newCoord);
         if (msg.order === 0) {
