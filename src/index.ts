@@ -13,6 +13,8 @@ interface sliderInfo {
     togVals?: Array<number | string>,
     measure?: string,
     isVertical?: boolean,
+    lDivNum?: number,
+    smDivNum?: number,
 }
 
 interface toggleMsg {
@@ -139,7 +141,7 @@ class Model extends Observable {
                     this.updateIsRangeInfo(msg.newVal);
                 }
                 break;
-            }
+            } 
             case "measure": {
                 if (typeof (msg.newVal) === "string") {
                     this.setMeasure(msg.newVal);
@@ -150,6 +152,15 @@ class Model extends Observable {
                 if (typeof (msg.newVal) === "boolean") {
                     this.updateIsVerticalInfo(msg.newVal);
                 }
+                break;
+            }
+            case "lDivNum": {
+                this.setLDivNum(+msg.newVal);
+                
+                break;
+            }
+            case "smDivNum": {
+                this.setSmDivNum(+msg.newVal);
                 break;
             }
             default: {
@@ -200,6 +211,12 @@ class Model extends Observable {
     }
     updateIsVerticalInfo(newData: boolean) {
         this.sliderData.isVertical = newData;
+    }
+    setLDivNum(newNum: number) {
+        this.sliderData.lDivNum = newNum;
+    }
+    setSmDivNum(newNum: number) {
+        this.sliderData.smDivNum = newNum;
     }
 
 }
@@ -260,6 +277,7 @@ class View {
         }
         this.addListeners();
         this.scale.addObserver(this.scaleObserver);
+        window.addEventListener("resize", this.changeWindowSizeListener.bind(this));
     };
 
     render(parentElement: Element) {
@@ -283,6 +301,9 @@ class View {
         this.controlPanel.maxInput.addEventListener("change", this.maxInputListener.bind(this));
         this.controlPanel.stepInput.addEventListener("change", this.stepInputListener.bind(this));
 
+        this.controlPanel.smDivNumInput.addEventListener("change", this.scaleSmDivInputListener.bind(this));
+        this.controlPanel.lDivNumInput.addEventListener("change", this.scaleLDivInputListener.bind(this));
+
         this.scale.track.addEventListener("click", this.trackClickListener.bind(this));
         this.scaleDivsAddListeners();
     };
@@ -304,6 +325,12 @@ class View {
     scaleCheckListener(e: MouseEvent) {
         let checkbox = e.currentTarget as HTMLInputElement;
         this.scale.showScale(checkbox.checked);
+        if (checkbox.checked && this.controlPanel.divNumInputsContainer.classList.contains("hidden")) {
+            this.controlPanel.divNumInputsContainer.classList.remove("hidden");
+        } else if (!checkbox.checked && !this.controlPanel.divNumInputsContainer.classList.contains("hidden")) {
+            this.controlPanel.divNumInputsContainer.classList.add("hidden");
+        }
+
     }
     rotateVerticalListener(e: MouseEvent) {
         let radio = e.currentTarget as HTMLInputElement;
@@ -413,9 +440,33 @@ class View {
         
         this.scale.moveClosestTog(newCoord);
     }
-
-
-
+    scaleLDivInputListener(e: MouseEvent) {
+        let input = e.target as HTMLInputElement;
+        let newVal = input.value;
+        if (newVal) {
+            this.sendMessage("lDivNum", newVal);
+            this.scale.reloadScale();
+            this.scaleDivsAddListeners();
+            console.log("l listener");
+        } 
+    }
+    scaleSmDivInputListener(e: MouseEvent) {
+        let input = e.target as HTMLInputElement;
+        let newVal = input.value;
+        if (newVal) {
+            this.sendMessage("smDivNum", newVal);
+            this.scale.reloadScale();
+            this.scaleDivsAddListeners();
+            console.log("sm listener");
+        }
+    }
+    changeWindowSizeListener() {
+        this.scale.updateDradAndDropInfo();
+        this.scale.recalcTogCoords();
+        this.scale.recalcTogPositions();
+        this.scale.updateScaleLabels();
+        console.log("resize");
+    }
 
     updateTogInput(order: number, newVal: string) {
         let input = this.controlPanel.toggleInputsContainer.children[order].lastElementChild as HTMLInputElement;
@@ -521,6 +572,7 @@ class Scale extends InterfaceElement {
             toggle.updateInfo(newInfo);
         });
         this.updateScaleLabels();
+        console.log("UPDATED INFO", this.info);
     };
     updateDradAndDropInfo() {  //update info about start and fin coords for every toggle drag and drop function
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width,
@@ -567,8 +619,8 @@ class Scale extends InterfaceElement {
 
 
     renderScale() {
-        let largeDivNum = 4;
-        let regDivNum = 5;
+        let largeDivNum = this.info.lDivNum;
+        let regDivNum = this.info.smDivNum;
         this.scaleContainer = this.createElement("div", "slider__scaleContainer", this.info.idNum) as HTMLElement;
         this.scale = this.createElement("div", "slider__scale", this.info.idNum) as HTMLElement;
 
@@ -1055,6 +1107,9 @@ class ControlPanel extends InterfaceElement {
     minInput: HTMLElement;
     maxInput: HTMLElement;
     stepInput: HTMLElement;
+    divNumInputsContainer: HTMLElement;
+    smDivNumInput: HTMLElement;
+    lDivNumInput: HTMLElement;
     isHorizontalRadio: HTMLElement;
     isVerticalRadio: HTMLElement;
     isSingleValRadio: HTMLElement;
@@ -1069,6 +1124,8 @@ class ControlPanel extends InterfaceElement {
         step: number,
         isRange: boolean,
         isVertical: boolean,
+        lDivNum: number,
+        smDivNum: number,
     }
 
     constructor(info: sliderInfo) {
@@ -1080,6 +1137,8 @@ class ControlPanel extends InterfaceElement {
             step: info.step,
             isRange: info.isRange,
             isVertical: info.isVertical,
+            lDivNum: info.lDivNum,
+            smDivNum: info.smDivNum,
         }
         this.render();
     }
@@ -1087,6 +1146,8 @@ class ControlPanel extends InterfaceElement {
     render(): void {
         this.container = this.createElement("div", "slider__controlElements", this.info.idNum) as HTMLElement;
         this.toggleInputsContainer = this.createElement("div", "slider__toggleControlContainer", this.info.idNum) as HTMLElement;
+        this.divNumInputsContainer = this.createElement("div", "slider__divNumInputsContainer", this.info.idNum) as HTMLElement;
+        this.divNumInputsContainer.classList.add("hidden");
         let inputsContainer = this.createElement("div", "slider__inputsContainer", this.info.idNum);
         let viewRadioContainer = this.createElement("div", "slider__radioContainer", this.info.idNum);
 
@@ -1095,6 +1156,8 @@ class ControlPanel extends InterfaceElement {
         this.minInput = this.createInput("slider__input slider__input_min", "text", "", this.info.minValue + "");
         this.maxInput = this.createInput("slider__input slider__input_max", "text", "", this.info.maxValue + "");
         this.stepInput = this.createInput("slider__input slider__input_step", "text", "", this.info.step + "");
+        this.smDivNumInput = this.createInput("slider__input slider__input_smDivNum", "text", "", this.info.smDivNum + "");
+        this.lDivNumInput = this.createInput("slider__input slider__input_lDivNum", "text", "", this.info.lDivNum + "");
         this.isHorizontalRadio = this.createInput("slider__viewRadio slider__viewRadio_horizontal", "radio", "slider__viewRadio -" + this.info.idNum, "horizontal", "");
         this.isVerticalRadio = this.createInput("slider__viewRadio slider__viewRadio_vertical", "radio", "slider__viewRadio -" + this.info.idNum, "vertical", "");
         this.isSingleValRadio = this.createInput("slider__isRangeRadio slider__isRangeRadio_single", "radio", "slider__isRangeRadio-" + this.info.idNum, "single", "");
@@ -1105,6 +1168,9 @@ class ControlPanel extends InterfaceElement {
         let minInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_min", "Min:", this.minInput.id);
         let maxInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_max", "Max:", this.maxInput.id);
         let stepInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_step", "Шаг:", this.maxInput.id);
+        let divInputsCommonLabel = this.createLabel("slider__inputDivNumCommonLabel", "Число промежутков:");
+        let smDivNumLabel = this.createLabel("slider__inputLabel slider__inputLabel_smDivNum", "Дополнительные:", this.smDivNumInput.id);
+        let lDivNumInputLabel = this.createLabel("slider__inputLabel slider__inputLabel_lDivNum", "Основные:", this.lDivNumInput.id);
         let radioCommonLabel = this.createLabel("slider__radioCommonLabel", "Вид слайдера:");
         let radioHorizontalLabel = this.createLabel("slider__radioLabel", "Горизонтальный", this.isHorizontalRadio.id);
         let radioVerticalLabel = this.createLabel("slider__radioLabel", "Вертикальный", this.isVerticalRadio.id);
@@ -1120,6 +1186,13 @@ class ControlPanel extends InterfaceElement {
 
         this.container.append(this.showScaleCheckbox);
         this.container.append(scaleChecboxLabel);
+
+        this.container.append(this.divNumInputsContainer);
+        this.divNumInputsContainer.append(divInputsCommonLabel);
+        this.divNumInputsContainer.append(lDivNumInputLabel);
+        lDivNumInputLabel.append(this.lDivNumInput);
+        this.divNumInputsContainer.append(smDivNumLabel);
+        smDivNumLabel.append(this.smDivNumInput);
 
         this.container.append(inputsContainer);
         inputsContainer.append(minInputLabel);
@@ -1197,6 +1270,8 @@ class ControlPanel extends InterfaceElement {
             step: info.step,
             isRange: info.isRange,
             isVertical: info.isVertical,
+            smDivNum: info.smDivNum,
+            lDivNum: info.lDivNum,
         }
     }
 };
@@ -1217,6 +1292,8 @@ for (let [index, elem] of containers.entries()) {
         togVals: [15, 75],
         measure: "standard",
         isVertical: false,
+        smDivNum: 5,
+        lDivNum: 4,
     }, elem);
 }
 
