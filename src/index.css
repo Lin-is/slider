@@ -86,6 +86,36 @@ h1 {
     transform: rotate(42deg);
 }
 
+.slider__valTypeForm {
+    margin: 5px 0px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.slider__valTypeOption {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.slider__valTypeSelect {
+    width: 90%;
+    height: 30px;
+    border-radius: 5px;
+    margin: 3px 0px;
+    font-size: 16px;
+    color: inherit;
+    font-family: inherit;
+    background-color: whitesmoke;
+    /* align-self: center; */
+}
+.slider__valTypeSelect:active {
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+
+
 .slider__input {
     margin-left: 5px;
     width: 70%;
