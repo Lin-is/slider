@@ -179,6 +179,26 @@ input:checked+.slider__radioLabel::after {
     background-color: rgb(190, 69, 79);
 }
 
+.slider__additTextRadio {
+    display: none;
+}
+
+.slider__additTextLabel_after,
+.slider__additTextLabel_before {
+    color: rgba(38, 38, 38, 0.7);
+}
+
+.slider__additTextLabel_after:hover,
+.slider__additTextLabel_before:hover {
+    border-bottom: 2px dashed rgb(190, 69, 79);
+}
+
+input:checked+.slider__additTextLabel_after,
+input:checked+.slider__additTextLabel_before {
+    color: inherit;
+    border-bottom: 2px solid rgb(190, 69, 79);
+}
+
 .slider__toggleControl {
     display: flex;
     flex-direction: row;

@@ -1,5 +1,5 @@
 import './index.css'
-import { htmlPrefilter, isArray, valHooks } from 'jquery';
+import { htmlPrefilter, isArray, type, valHooks } from 'jquery';
 "use strict";
 
 
@@ -15,6 +15,8 @@ interface sliderInfo {
     isVertical?: boolean,
     lDivNum?: number,
     smDivNum?: number,
+    additText?: string,
+    isAdditTextAfter?: boolean,
 }
 
 interface toggleMsg {
@@ -163,11 +165,24 @@ class Model extends Observable {
                 this.setSmDivNum(+msg.newVal);
                 break;
             }
+            case "isAdditTextAfter": {
+                if (typeof (msg.newVal) === "boolean") {
+                    this.updateIsTextAfterInfo(msg.newVal);
+                }
+                break;
+            }
+            case "additText": {
+                if (typeof (msg.newVal) === "string") {
+                    this.updateAdditText(msg.newVal)
+                }
+                break;
+            }
             default: {
                 console.log("Error: wrong name");
                 break;
             }
         }
+        console.log(this.sliderData);
     }
     getMinValue(): number {
         return +this.sliderData.minValue;
@@ -243,6 +258,9 @@ class Model extends Observable {
     updateIsVerticalInfo(newData: boolean) {
         this.sliderData.isVertical = newData;
     }
+    updateIsTextAfterInfo(newData: boolean) {
+        this.sliderData.isAdditTextAfter = newData;
+    }
     setLDivNum(newNum: number) {
         this.sliderData.lDivNum = newNum;
     }
@@ -254,7 +272,9 @@ class Model extends Observable {
             this.sliderData.togVals = [];
             this.sliderData.togVals = newVals;
         }
-        
+    }
+    updateAdditText(newText: string) {
+        this.sliderData.additText = newText;
     }
 
     setStartValsInt() {
@@ -271,7 +291,7 @@ class Model extends Observable {
         if (this.sliderData.valType === "float") {
             this.setMinValue(1.5);
             this.setMaxValue(11.5);
-            this.setStep('1.0');
+            this.setStep('0.5');
             this.sliderData.togVals = [];
             this.sliderData.togVals.push(4.5);
             this.sliderData.togVals.push(8.5);
@@ -385,7 +405,14 @@ class View {
         this.scale.track.addEventListener("click", this.trackClickListener.bind(this));
         this.scaleDivsAddListeners();
 
+        this.controlPanel.additTextForm.addEventListener("submit", (e: MouseEvent) => {
+            e.preventDefault();
+        })
+
         this.controlPanel.valTypeSelector.addEventListener("change", this.valTypeSelectListener.bind(this));
+        this.controlPanel.textBeforeRadio.addEventListener("change", this.textBeforeRadioListener.bind(this));
+        this.controlPanel.textAfterRadio.addEventListener("change", this.textAfterRadioListener.bind(this));
+        this.controlPanel.additTextInput.addEventListener("change", this.additTextInputListener.bind(this));
     };
 
     scaleDivsAddListeners(){
@@ -551,12 +578,48 @@ class View {
         this.controlPanel.minInput.addEventListener("change", this.minInputListener.bind(this));
         this.controlPanel.maxInput.addEventListener("change", this.maxInputListener.bind(this));
         this.controlPanel.stepInput.addEventListener("change", this.stepInputListener.bind(this));
+
+        if (newVal === "latin" || newVal === "cyrillic") {
+            this.controlPanel.toHideAdditTextInput(true);
+        }
+        if (newVal === "integer" || newVal === "float") {
+            this.controlPanel.toHideAdditTextInput(false);
+        }
         this.scale.updateTrack();
         let check = this.controlPanel.showToggleLabelsCheckbox as HTMLInputElement;
         if (check.checked) {
             this.scale.showTogLabels(true);
         }
     }
+
+    additTextInputListener(e: MouseEvent) {
+        let input = e.currentTarget as HTMLInputElement;
+        let newVal = input.value;
+        if (newVal) {
+            this.sendMessage("additText", newVal);
+            this.scale.removeAllAdditText();
+            this.scale.updateAllAdditText();
+        }
+    }
+    textBeforeRadioListener(e: MouseEvent) {
+        e.preventDefault();
+        let radio = e.currentTarget as HTMLInputElement;
+        if (radio.checked) {
+            this.scale.removeAllAdditText();
+            this.sendMessage("isAdditTextAfter", false);
+            this.scale.updateAllAdditText();
+        }
+    }
+    textAfterRadioListener(e: MouseEvent) {
+        e.preventDefault();
+        let radio = e.currentTarget as HTMLInputElement;
+        if (radio.checked) {
+            this.scale.removeAllAdditText();
+            this.sendMessage("isAdditTextAfter", true);
+            this.scale.updateAllAdditText();
+        }
+    }
+
 
     updateTogInput(order: number, newVal: string) {
         let input = this.controlPanel.toggleInputsContainer.children[order].lastElementChild as HTMLInputElement;
@@ -691,13 +754,17 @@ class Scale extends InterfaceElement {
         this.renderSecStage();
         this.addDragAndDrop();
     };
-    updateScaleLabels() {
+    updateScaleLabels(toRemoveAdditText = false) {
         let divs = this.scale.children;
         for (let division of divs) {
             let htmlDiv = division as HTMLElement;
             if (division.children.length > 0) {
                 let coord = parseFloat(this.info.isVertical ? htmlDiv.style.top : htmlDiv.style.left);
                 let newVal = this.calculateToggleCoordToVal(coord);
+                
+                if (toRemoveAdditText) {
+                    newVal = this.removeAdditText(newVal);
+                }
                 division.firstElementChild.innerHTML = newVal + "";
             }
         }
@@ -707,6 +774,7 @@ class Scale extends InterfaceElement {
         let fin = this.info.isRange ? this.togCoords.secTog : this.togCoords.firstTog;
         this.progressBarSetCoords(start, fin);
     };
+    
 
 
 
@@ -812,7 +880,7 @@ class Scale extends InterfaceElement {
         if (newVal > this.info.maxValue ) {
             newVal = this.info.maxValue;
         }
-        if (newVal < this.info.minValue) {
+        if (newVal < this.info.minValue && newVal !== "Ё") {
             newVal = this.info.minValue;
         }
         let newCoord = this.calculateToggleValToCoord(newVal);
@@ -860,6 +928,15 @@ class Scale extends InterfaceElement {
             this.track.lastElementChild.remove();
         }
     };
+    updateTogglesLabels(toRemoveAdditText = false) {
+        this.toggles.forEach((toggle, index) => {
+            let newVal = index === 0 ? this.calculateToggleCoordToVal(this.togCoords.firstTog) : this.calculateToggleCoordToVal(this.togCoords.secTog);
+            if (toRemoveAdditText) {
+                newVal = this.removeAdditText(newVal);
+            }
+            toggle.updateLabel(newVal);
+        })
+    }
 
 
     addProgressBar(startCoord: number, endCoord: number){
@@ -907,15 +984,7 @@ class Scale extends InterfaceElement {
         if (this.info.valType === "latin" && maxVal > 90) {
             maxVal -= 6;
         }
-        // if (this.info.valType === "cyrillic" && (maxVal < 1071 && minVal > 1045 || maxVal < 1104 && minVal > 1077)) {
-        //     maxVal += 1;
-        //     console.log("+1")
-        // } else if (this.info.valType === "cyrillic" && (minVal > 1045 && maxVal < 1104)) {
-        //     maxVal += 2;
-        //     console.log("+2");
-        // }
-
-
+        
 
         let stepNumber = (maxVal - minVal) / +this.info.step;
         stepSize = (this.track.getBoundingClientRect().width - this.toggles[0].container.offsetWidth) / stepNumber;
@@ -935,15 +1004,17 @@ class Scale extends InterfaceElement {
         }
         console.log(this.fractSize);
     }
+
     calculateToggleValToCoord(val: number | string): number {
+        let clearVal = this.removeAdditText(val +"");
         let coord: number;
         switch (this.info.valType) {
             case "integer": {
-                coord = this.numberValToCoord(+val);
+                coord = this.numberValToCoord(+clearVal);
                 break;
             }
             case "float": {
-                coord = this.numberValToCoord(+val);
+                coord = this.numberValToCoord(+clearVal);
                 break;
             }
             case "latin": {
@@ -971,7 +1042,6 @@ class Scale extends InterfaceElement {
 
         return coord;
     }
-
     latValToCoord(val: string): number {
         let numMaxVal = (this.info.maxValue + "").charCodeAt(0);
         let numMinVal = (this.info.minValue + "").charCodeAt(0);
@@ -1003,10 +1073,12 @@ class Scale extends InterfaceElement {
         switch (this.info.valType) {
             case "integer": {
                 val = this.coordToIntVal(coord) + "";
+                val = this.addAdditText(val);
                 break;
             }
             case "float": {
                 val = this.coordToFloatVal(coord) + "";
+                val = this.addAdditText(val);
                 break;
             }
             case "latin": {
@@ -1067,18 +1139,35 @@ class Scale extends InterfaceElement {
         let numMaxVal = (this.info.maxValue + "").charCodeAt(0);
         let numMinVal = (this.info.minValue + "").charCodeAt(0);
 
+
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;
         let numVal = Math.round(((coord * (numMaxVal - numMinVal)) / (trackSize)) + numMinVal);
 
+
         let val = String.fromCharCode(numVal);
-
-        //Ё = 1025, Е = 1045; ё = 1105, е = 1077
-        // А-Я = 1040 - 1071, а-я = 1072 - 1103
-
         return val;
     }
 
-
+    addAdditText(val: string): string {
+        let newVal = val;
+        if (this.info.additText) {
+            newVal = this.info.isAdditTextAfter ? val + this.info.additText : this.info.additText + val;
+        } 
+        return newVal;
+    }
+    removeAdditText(val: string): string {
+        let newVal = val;
+        let index = val.indexOf(this.info.additText);
+        let finIndex = index + val.length;
+        if (this.info.additText && index !== -1) {
+            if (index === 0) {
+                newVal = val.slice(finIndex);
+            } else {
+                newVal = val.slice(0, index);
+            }
+        }
+        return newVal;
+    }
     rotateVertical() {
         this.container.classList.add("vertical");
         this.track.classList.add("vertical");
@@ -1105,6 +1194,15 @@ class Scale extends InterfaceElement {
         this.updateProgressBar();
         this.reloadScale();
     };
+
+    removeAllAdditText() {
+        this.updateTogglesLabels(true);
+        this.updateScaleLabels(true);
+    }
+    updateAllAdditText() {
+        this.updateScaleLabels(false);
+        this.updateTogglesLabels(false);
+    }
 
 
 
@@ -1365,31 +1463,18 @@ class ControlPanel extends InterfaceElement {
     isRangeValRadio: HTMLElement
     toggleInputsContainer: HTMLElement;
     valTypeSelector: HTMLElement;
+    textBeforeRadio: HTMLElement;
+    textAfterRadio: HTMLElement;
+    additTextForm: HTMLElement;
+    additTextInput: HTMLElement;
 
 
-    info: {
-        idNum: number, 
-        minValue: number | string,
-        maxValue: number | string,
-        step: string,
-        isRange: boolean,
-        isVertical: boolean,
-        lDivNum: number,
-        smDivNum: number,
-    }
+    info: sliderInfo;
+    
 
     constructor(info: sliderInfo) {
         super();
-        this.info = {
-            idNum: info.idNum,
-            minValue: info.minValue,
-            maxValue: info.maxValue,
-            step: info.step,
-            isRange: info.isRange,
-            isVertical: info.isVertical,
-            lDivNum: info.lDivNum,
-            smDivNum: info.smDivNum,
-        }
+        this.info = info;
         this.render();
     }
 
@@ -1457,6 +1542,12 @@ class ControlPanel extends InterfaceElement {
         maxInputLabel.append(this.maxInput);
         inputsContainer.append(stepInputLabel);
         stepInputLabel.append(this.stepInput);
+
+        if (this.info.valType === "integer" || this.info.valType === "float") {
+            this.container.append(this.addAdditTextInput());
+        }
+
+        
 
         this.container.append(viewRadioContainer);
         viewRadioContainer.append(radioCommonLabel);
@@ -1536,6 +1627,49 @@ class ControlPanel extends InterfaceElement {
         console.log("inputs reload");
     }
 
+    addAdditTextInput(): HTMLElement {
+        this.additTextForm = this.createElement("form", "slider__additTextForm", this.info.idNum) as HTMLElement;
+        let label = this.createLabel("slider__additTextLabel slider__additTextLabel_common", "Добавить текст ");
+        this.textBeforeRadio = this.createInput("slider__additTextRadio slider__additTextRadio_before", "radio", "slider__additTextRadio-" + this.info.idNum, "textBefore");
+        this.textAfterRadio = this.createInput("slider__additTextRadio slider__additTextRadio_after", "radio", "slider__additTextRadio-" + this.info.idNum, "textAfter");
+        let textBeforeLabel = this.createLabel("slider__additTextLabel slider__additTextLabel_before", "перед значением", this.textBeforeRadio.id);
+        let textAfterLabel = this.createLabel("slider__additTextLabel slider__additTextLabel_after", "после значения", this.textAfterRadio.id);
+        this.additTextInput = this.createInput("slider__additTextInput", "text");
+        let labelSec = this.createLabel("slider__additTextLabel slider__additTextLabel_common", "/");;
+        
+        
+        
+        this.additTextForm.append(label);
+        this.additTextForm.append(this.textBeforeRadio);
+        this.additTextForm.append(textBeforeLabel);
+        this.additTextForm.append(labelSec);
+        this.additTextForm.append(this.textAfterRadio);
+        this.additTextForm.append(textAfterLabel);
+        this.additTextForm.append(this.additTextInput);
+
+
+
+        if (this.info.valType === "latin" || this.info.valType === "cyrillic") {
+            this.toHideAdditTextInput(true);
+        }
+
+        if (this.info.additText) {
+            this.info.isAdditTextAfter ? this.textAfterRadio.setAttribute("checked", "true") : this.textBeforeRadio.setAttribute("checked", "true");
+        } else {
+            this.textBeforeRadio.setAttribute("checked", "true");
+        }
+
+        return this.additTextForm;
+    }
+
+    toHideAdditTextInput(toHide: boolean) {
+        if (toHide && !this.additTextForm.classList.contains("hidden")){
+            this.additTextForm.classList.add("hidden");    
+        } else if (!toHide && this.additTextForm.classList.contains("hidden")){
+            this.additTextForm.classList.remove("hidden");
+        }
+    }
+
     addValTypeSelection(): HTMLElement {
         let form = this.createElement("form", "slider__valTypeForm", this.info.idNum) as HTMLElement;
         
@@ -1545,18 +1679,28 @@ class ControlPanel extends InterfaceElement {
         let intOption = this.createElement("option", "slider__valTypeOption slider__valTypeOption_int", this.info.idNum + "-" + 1);
         intOption.setAttribute("value", "integer");
         intOption.innerHTML = "Целые числа";
+        if (this.info.valType === "integer") {
+            intOption.setAttribute("selected", "true");
+        }
         let floatOption = this.createElement("option", "slider__valTypeOption slider__valTypeOption_float", this.info.idNum + "-" + 2);
         floatOption.setAttribute("value", "float");
         floatOption.innerHTML = "Десятичные дроби";
+        if (this.info.valType === "float") {
+            floatOption.setAttribute("selected", "true");
+        }
         let latinOption = this.createElement("option", "slider__valTypeOption slider__valTypeOption_latin", this.info.idNum + "-" + 3);
         latinOption.setAttribute("value", "latin");
         latinOption.innerHTML = "Латиница";
+        if (this.info.valType === "latin") {
+            latinOption.setAttribute("selected", "true");
+        }
         let cyrOption = this.createElement("option", "slider__valTypeOption slider__valTypeOption_cyr", this.info.idNum + "-" + 4);
         cyrOption.setAttribute("value", "cyrillic");
         cyrOption.innerHTML = "Кириллица";
-        let dateOption = this.createElement("option", "slider__valTypeOption slider__valTypeOption_date", this.info.idNum + "-" + 5);
-        dateOption.setAttribute("value", "date");
-        dateOption.innerHTML = "Дата";
+        if (this.info.valType === "cyrillic") {
+            cyrOption.setAttribute("selected", "true");
+        }
+
         let label = this.createLabel("slider__selectLabel", "Тип значения:", this.valTypeSelector.id);
 
         form.append(label);
@@ -1565,22 +1709,12 @@ class ControlPanel extends InterfaceElement {
         this.valTypeSelector.append(floatOption);
         this.valTypeSelector.append(latinOption);
         this.valTypeSelector.append(cyrOption);
-        // selector.append(dateOption);
 
 
         return form;
     }
     updateInfo(info: sliderInfo) {
-        this.info = {
-            idNum: info.idNum,
-            minValue: info.minValue,
-            maxValue: info.maxValue,
-            step: info.step,
-            isRange: info.isRange,
-            isVertical: info.isVertical,
-            smDivNum: info.smDivNum,
-            lDivNum: info.lDivNum,
-        }
+        this.info = info;
     }
 };
 
@@ -1597,7 +1731,7 @@ for (let [index, elem] of containers.entries()) {
         maxValue: 100,
         step: "5",
         isRange: false,
-        togVals: [15, 75],
+        togVals: [25],
         valType: "integer",
         isVertical: false,
         smDivNum: 5,

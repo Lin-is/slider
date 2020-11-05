@@ -2,6 +2,144 @@ import './index.css'
 import { valHooks } from 'jquery';
 "use strict";
 
+
+
+//буква ё
+
+
+        //Ё = 1025, Е = 1045; ё = 1105, е = 1077
+        // А-Я = 1040 - 1071, а-я = 1072 - 1103
+
+//из координаты в подпись
+
+
+
+
+        // numMaxVal += this.cyrillcalcMaxDiff(numMaxVal, numMinVal);
+        // if (numVal > 1045 && numVal < 1079) {
+        //     if (numVal === 1046) {
+        //         numVal = 1025;
+        //     } else {
+        //         numVal -= 1;
+        //     }
+        // }
+        // if (numVal > 1078) {
+        //     if (numVal === 1079) {
+        //         numVal = 1105
+        //     } else {
+        //         numVal -= 2;
+        //     }
+        // }
+
+
+        // if (numMinVal < 1046 && numMaxVal > 1078) {
+        //     if (numVal > 1045 && numVal < 1078) {
+        //         if (numVal === 1046) {
+        //             numVal = 1025;
+        //         } else {
+        //             numVal -= 1;
+        //         }
+        //     }
+        //     if (numVal > 1077) {
+        //         if (numVal === 1079) {
+        //             numVal = 1105
+        //         } else if (numVal === 1078) {
+        //             numVal -= 1;
+        //         } else {
+        //             numVal -= 2;
+        //         }
+        //     }
+        // } else if (numMinVal < 1046 && numMaxVal <= 1072) {
+        //     if (numVal > 1045) {
+        //         if (numVal === 1046) {
+        //             numVal = 1025;
+        //         } else {
+        //             numVal -= 1;
+        //         }
+        //     }
+        // } else if (numMinVal >= 1046 && numMinVal < 1079) {
+        //     if (numVal > 1077) {
+        //         if (numVal === 1078) {
+        //             numVal = 1105;
+        //         } else {
+        //             numVal -= 1;
+        //         }
+        //     }
+        // }
+
+// из подписи в координату 
+    // numMaxVal += this.cyrillcalcMaxDiff(numMaxVal, numMinVal, numVal);
+
+
+        // if (numVal === 1025) {
+        //     numVal = 1046; 
+        // };
+
+        // if (numVal === 1105) {
+        //     numVal = 1079
+        // };
+
+        // if (numVal > 1046 && numVal < 1079) {
+        //     numVal += 1;
+        // }
+        // if (numVal > 1079) {
+        //     numVal += 2;
+        // }
+
+
+
+        // if (numMinVal < 1046 && numMaxVal > 1078) {
+        //     if (numVal > 1046 && numVal < 1078) {
+        //         numVal += 1;
+        //     }
+        //     if (numVal > 1077) {
+        //         if (numVal === 1105) {
+        //             numVal = 1079;
+        //         } else if (numVal === 1078) {
+        //             numVal += 1;
+        //         } else {
+        //             numVal += 2;
+        //         }
+        //     }
+        // } else if (numMinVal < 1046 && numMaxVal <= 1072) {
+        //     if (numVal > 1046) {
+        //         numVal += 1;
+        //     }
+        // } else if (numMinVal >= 1046 && numMinVal < 1079) {
+        //     if (numVal > 1077) {
+        //         if (numVal === 1105) {
+        //             numVal = 1078;
+        //         } else {
+        //             numVal += 1;
+        //         }
+        //     }
+        // }
+
+        //в расчете размера шага
+        // if (this.info.valType === "cyrillic") {
+        //     maxVal += this.cyrillcalcMaxDiff(maxVal, minVal);
+        // }
+
+// cyrillcalcMaxDiff(maxCode: number, minCode: number, valCode ?: number): number {
+//     let diff = 0;
+
+//     // if (minCode < 1046 && maxCode >= 1078) {
+//     //     diff = 2;
+//     // } else if (minCode < 1046 && maxCode <= 1077 || minCode > 1046 && minCode < 1079) {
+//     //     diff = 1;
+//     // }
+
+//     if (maxCode < 1078) {
+//         diff = 1;
+//     } else {
+//         diff = 2;
+//     }
+
+//     return diff;
+// }
+
+
+
 interface sliderInfo {
     idNum?: number,
     minScaleValue: number,
