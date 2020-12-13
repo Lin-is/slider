@@ -1676,7 +1676,7 @@ createSlider({
         idNum: 2,
         minValue: -100,
         maxValue: 200,
-        step: "15",
+        step: "2.5",
         isRange: true,
         togVals: [25, 125],
         valType: "float",
