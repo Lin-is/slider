@@ -1583,6 +1583,7 @@ class ControlPanel extends InterfaceElement {
         if (this.info.valType === "latin" || this.info.valType === "cyrillic") {
             this.toHideAdditTextInput(true);
         }
+
         if (this.info.additText) {
             this.info.isAdditTextAfter ? this.textAfterRadio.setAttribute("checked", "true") : this.textBeforeRadio.setAttribute("checked", "true");
         } else {
@@ -1599,8 +1600,10 @@ class ControlPanel extends InterfaceElement {
             this.additTextForm.classList.remove("hidden");
         }
     }
+
     addValTypeSelection(): HTMLElement {
         let form = this.createElement("form", "slider__valTypeForm", this.info.idNum) as HTMLElement;
+        
         this.valTypeSelector = this.createElement("select", "slider__valTypeSelect", this.info.idNum) as HTMLElement;
         this.valTypeSelector.setAttribute("form", form.id);
         this.valTypeSelector.setAttribute("name", "valTypeSelect-" + this.info.idNum);
@@ -1628,6 +1631,7 @@ class ControlPanel extends InterfaceElement {
         if (this.info.valType === "cyrillic") {
             cyrOption.setAttribute("selected", "true");
         }
+
         let label = this.createLabel("slider__selectLabel", "Тип значения:", this.valTypeSelector.id);
 
         form.append(label);
@@ -1637,6 +1641,7 @@ class ControlPanel extends InterfaceElement {
         this.valTypeSelector.append(latinOption);
         this.valTypeSelector.append(cyrOption);
 
+
         return form;
     }
     updateInfo(info: sliderInfo) {
@@ -1644,11 +1649,14 @@ class ControlPanel extends InterfaceElement {
     }
 };
 
+
 function createSlider(info: sliderInfo, parentElement: Element) {
     let app = new Controller(new Model(info), new View(info, parentElement));
 }
 
+
 let containers = document.querySelectorAll(".slider-here");
+
 
 createSlider({
         idNum: 1,

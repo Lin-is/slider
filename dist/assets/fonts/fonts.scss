@@ -1,0 +1,15 @@
+@font-face {
+    font-family: "Raleway Regular";
+    src: url('/assets/fonts/RalewayLight/Raleway-Regular.eot');
+    /* IE9 Compat Modes */
+    src: url('/assets/fonts/RalewayLight/Raleway-Regular.otf') format('otf'),
+        /* IE6-IE8 */
+        url('/assets/fonts/RalewayLight/Raleway-Regular.woff') format('woff'),
+        /* Pretty Modern Browsers */
+        url('/assets/fonts/RalewayLight/Raleway-Regular.ttf') format('truetype'),
+        /* Safari, Android, iOS */
+        url('/assets/fonts/RalewayLight/Raleway-Regular.svg') format('svg');
+    /* Legacy iOS */
+    font-weight: 400;
+    font-style: normal;
+}
