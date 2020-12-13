@@ -1655,7 +1655,7 @@ function createSlider(info: sliderInfo, parentElement: Element) {
 }
 
 
-let containers = document.querySelectorAll(".slider-here");
+let container = document.querySelector(".slider-here");
 
 
 createSlider({
@@ -1669,18 +1669,4 @@ createSlider({
         isVertical: false,
         smDivNum: 5,
         lDivNum: 4,
-    }, containers[0]);
-
-
-    createSlider({
-        idNum: 2,
-        minValue: -100,
-        maxValue: 200,
-        step: "2.5",
-        isRange: true,
-        togVals: [25, 125],
-        valType: "float",
-        isVertical: true,
-        smDivNum: 5,
-        lDivNum: 4,
-    }, containers[1]);
+    }, container);
