@@ -1,3 +1,13 @@
-# RangeSlider
+# Range Slider
 
-[Range Slider](https://lin-is.github.io/RangeSlider/dist/index.html)
+Drag-and-drop позлунок с возможностью выбора значения или диапазона значений
+
+Использовались TypeScript, Webpack 
+
+В процессе написания я попыталась понять и применить структуру MVP и шаблон Наблюдатель
+
+Слайдер делался по найденному где-то в интернете ТЗ в виде списка требований к итоговому результату
+
+Изначально использовался чистый JS
+
+[Тестовая страница](https://lin-is.github.io/RangeSlider/dist/index.html)
