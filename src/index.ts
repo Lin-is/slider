@@ -1,8 +1,5 @@
 import './index.css'
-import { htmlPrefilter, isArray, type, valHooks } from 'jquery';
 "use strict";
-
-
 
 interface sliderInfo {
     idNum?: number,
@@ -88,29 +85,6 @@ class Observer {
 }
 
 
-
-
-
-/**
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- */
-
-
-
-
-
 //*--------------------------------------------------------------------------------------------
 //*----MODEL-----------------------------------------------------------------------------------
 //*--------------------------------------------------------------------------------------------
@@ -182,7 +156,6 @@ class Model extends Observable {
                 break;
             }
         }
-        console.log(this.sliderData);
     }
     getMinValue(): number {
         return +this.sliderData.minValue;
@@ -657,9 +630,6 @@ class View {
     };
 }
 
-
-
-
 //*--------------------------------------------------------------------------------------------
 //*----SCALE-----------------------------------------------------------------------------------
 //*--------------------------------------------------------------------------------------------
@@ -727,7 +697,6 @@ class Scale extends InterfaceElement {
             toggle.updateInfo(newInfo);
         });
         this.updateScaleLabels();
-        console.log("UPDATED INFO", this.info);
     };
     updateDradAndDropInfo() {  //update info about start and fin coords for every toggle drag and drop function
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width,
@@ -877,6 +846,7 @@ class Scale extends InterfaceElement {
         }
     };
     moveToggle(newVal: number | string, togOrder: number) {
+         
         if (newVal > this.info.maxValue ) {
             newVal = this.info.maxValue;
         }
@@ -885,10 +855,11 @@ class Scale extends InterfaceElement {
         }
         let newCoord = this.calculateToggleValToCoord(newVal);
         this.toggles[togOrder].setPosition(newCoord);
-        this.toggles[togOrder].updateLabel(newVal);
+        let val = togOrder === 0 ? this.calculateToggleCoordToVal(this.togCoords.firstTog) : this.calculateToggleCoordToVal(this.togCoords.secTog);
+        this.toggles[togOrder].updateLabel(val);
         this.updateProgressBar();
     };
-    recalcTogCoords() {//after changing min or max vals
+    recalcTogCoords() { //after changing min or max vals
         this.togCoords.firstTog = this.calculateToggleValToCoord(this.info.togVals[0]);
         if (this.info.isRange) {
             this.togCoords.secTog = this.calculateToggleValToCoord(this.info.togVals[1]);
@@ -968,7 +939,6 @@ class Scale extends InterfaceElement {
         }
     };
 
-
     addDragAndDrop() {
         let that = this;
         that.updateDradAndDropInfo();
@@ -978,18 +948,15 @@ class Scale extends InterfaceElement {
     };
     calcStepSize(): number {
         let stepSize: number;
-
         let minVal = (this.info.valType === "latin" || this.info.valType === "cyrillic") ? (this.info.minValue+ "").charCodeAt(0) : +this.info.minValue; 
         let maxVal = (this.info.valType === "latin" || this.info.valType === "cyrillic") ? (this.info.maxValue + "").charCodeAt(0) : +this.info.maxValue;
         if (this.info.valType === "latin" && maxVal > 90) {
             maxVal -= 6;
         }
-        
-
         let stepNumber = (maxVal - minVal) / +this.info.step;
-        stepSize = (this.track.getBoundingClientRect().width - this.toggles[0].container.offsetWidth) / stepNumber;
+        stepSize = (this.track.getBoundingClientRect().width) / stepNumber;
         if (this.info.isVertical) {
-            stepSize = (this.track.getBoundingClientRect().height - this.toggles[0].container.offsetHeight) / stepNumber;
+            stepSize = (this.track.getBoundingClientRect().height) / stepNumber;
         }
         return stepSize;
     };
@@ -1002,7 +969,6 @@ class Scale extends InterfaceElement {
         } else {
             this.fractSize = 0;
         }
-        console.log(this.fractSize);
     }
 
     calculateToggleValToCoord(val: number | string): number {
@@ -1034,12 +1000,7 @@ class Scale extends InterfaceElement {
     };
     numberValToCoord(val: number): number {
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;       
-        let toggleSize = this.info.isVertical ? this.toggles[0].container.offsetHeight : this.toggles[0].container.offsetWidth; 
-
         let coord = ((val - +this.info.minValue) * (trackSize)) / (+this.info.maxValue - +this.info.minValue);
-
-        // let coord = (((val - +this.info.minValue) * (trackSize - toggleSize)) / (+this.info.maxValue - +this.info.minValue)).toFixed(10);
-
         return coord;
     }
     latValToCoord(val: string): number {
@@ -1067,7 +1028,6 @@ class Scale extends InterfaceElement {
 
         return coord;
     }
-
     calculateToggleCoordToVal(coord: number): string { 
         let val: string;
         switch (this.info.valType) {
@@ -1097,13 +1057,8 @@ class Scale extends InterfaceElement {
         return val;
     };
     coordToIntVal(coord: number): number {
-        let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width; 
-        let toggleSize = this.info.isVertical ? this.toggles[0].container.offsetHeight : this.toggles[0].container.offsetWidth; 
-
+        let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;  
         let val = Math.round(((coord * (+this.info.maxValue - +this.info.minValue)) / (trackSize)) + +this.info.minValue);
-        // let val = ((coord * (+this.info.maxValue - +this.info.minValue)) / (trackSize)) + +this.info.minValue;
-
-        
         return val;
     }
     coordToFloatVal(coord: number): number {
@@ -1112,23 +1067,17 @@ class Scale extends InterfaceElement {
             mult *= 10;
         }
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width; 
-        console.log(this.info.maxValue, this.info.minValue)
         let val = Math.round(((coord * (+this.info.maxValue * mult - +this.info.minValue * mult)) / (trackSize)) + +this.info.minValue * mult) / mult;
-        console.log("val", val);
-        
         return val;
     }
     coordToLatVal(coord: number): string {
         let numMaxVal = (this.info.maxValue + "").charCodeAt(0);
         let numMinVal = (this.info.minValue + "").charCodeAt(0);
-
         if (numMaxVal > 90 && numMinVal < 90) {
             numMaxVal -= 6;
         }
-        
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width; 
         let numVal = Math.round(((coord * (numMaxVal - numMinVal)) / (trackSize)) + numMinVal);
-
         if (numMaxVal > 90 && numMinVal < 90 && numVal > 90) {
             numVal += 6;
         }
@@ -1138,16 +1087,11 @@ class Scale extends InterfaceElement {
     coordToCyrVal(coord: number): string {
         let numMaxVal = (this.info.maxValue + "").charCodeAt(0);
         let numMinVal = (this.info.minValue + "").charCodeAt(0);
-
-
         let trackSize = this.info.isVertical ? this.track.getBoundingClientRect().height : this.track.getBoundingClientRect().width;
         let numVal = Math.round(((coord * (numMaxVal - numMinVal)) / (trackSize)) + numMinVal);
-
-
         let val = String.fromCharCode(numVal);
         return val;
     }
-
     addAdditText(val: string): string {
         let newVal = val;
         if (this.info.additText) {
@@ -1157,10 +1101,11 @@ class Scale extends InterfaceElement {
     }
     removeAdditText(val: string): string {
         let newVal = val;
-        let index = val.indexOf(this.info.additText);
-        let finIndex = index + val.length;
+        let index = val.indexOf(this.info.additText);   
         if (this.info.additText && index !== -1) {
             if (index === 0) {
+                let addLength = this.info.additText.length;
+                let finIndex = index + addLength;
                 newVal = val.slice(finIndex);
             } else {
                 newVal = val.slice(0, index);
@@ -1194,7 +1139,6 @@ class Scale extends InterfaceElement {
         this.updateProgressBar();
         this.reloadScale();
     };
-
     removeAllAdditText() {
         this.updateTogglesLabels(true);
         this.updateScaleLabels(true);
@@ -1203,9 +1147,6 @@ class Scale extends InterfaceElement {
         this.updateScaleLabels(false);
         this.updateTogglesLabels(false);
     }
-
-
-
     sendMessage(order: number, newVal: string, firstTogVal?: number | string, secTogVal?: number | string) {
         let msg = {
             order: order,
@@ -1243,12 +1184,9 @@ class Scale extends InterfaceElement {
     };
 };
 
-
-
 //*--------------------------------------------------------------------------------------------
 //*----TOGGLE----------------------------------------------------------------------------------
 //*--------------------------------------------------------------------------------------------
-
 
 class Toggle extends InterfaceElement {
     label: HTMLElement;
@@ -1263,8 +1201,8 @@ class Toggle extends InterfaceElement {
         trackStart: number,
         stepSize: number,
     }
-
     observers: Observer[];
+
     sendMessage(msg: toggleMsg) {
         for (let i = 1, len = this.observers.length; i < len; i++) {
             this.observers[i].update(msg);
@@ -1276,7 +1214,6 @@ class Toggle extends InterfaceElement {
     addObserver(observer: Observer) {
         this.observers.push(observer);
     };
-
     constructor(info: sliderInfo, value: number | string, order: number) {
         super();
         this.observers = [];
@@ -1293,7 +1230,6 @@ class Toggle extends InterfaceElement {
         }
         this.create(value, order);
     }
-
     create(value: number | string, order: number) {
         this.container = this.createElement("div", "slider__toggle", this.info.idNum) as HTMLElement;
         this.container.setAttribute("id", this.container.getAttribute("id") + "-" + (order + 1));
@@ -1307,7 +1243,6 @@ class Toggle extends InterfaceElement {
             this.label.classList.add("vertical");
         }
     };
-
     rotateVertical() {
         this.container.classList.add("vertical");
         this.label.classList.add("vertical");
@@ -1344,6 +1279,7 @@ class Toggle extends InterfaceElement {
         this.container.remove;
     };
     setPosition(coord: number): void {
+        coord = this.checkedStepMatch(coord);
         if (this.info.isVertical) {
             this.container.style.top = coord + "px";
         } else {
@@ -1362,7 +1298,6 @@ class Toggle extends InterfaceElement {
         }
         return coord;
     };
-
     updateLabel(value: number | string) {
         this.label.innerText = value + "";
     };
@@ -1376,12 +1311,27 @@ class Toggle extends InterfaceElement {
         this.dragAndDropInfo.trackStart = trackStart;
         this.dragAndDropInfo.stepSize = stepSize;
     };
+    checkedStepMatch(coord: number): number {
+        let checkedCoord = coord;
+        if (coord % this.dragAndDropInfo.stepSize !== 0) {
+            let diff = coord / this.dragAndDropInfo.stepSize;
+            let minNum = Math.floor(diff);
+            let maxNum = Math.ceil(diff);
+            if (Math.abs(diff - minNum) < Math.abs(diff - maxNum)) {
+                checkedCoord = this.dragAndDropInfo.stepSize * minNum;
+            } else {
+                checkedCoord = this.dragAndDropInfo.stepSize * maxNum;
+            }
+            if (!checkedCoord) {
+                checkedCoord = coord
+            }
+        }
+        return checkedCoord;
+    }
     addDragAndDrop() {
         let that = this, 
-            toggle = this.container,
-            halfTog = this.info.isVertical ? toggle.getBoundingClientRect().top / 2 : toggle.getBoundingClientRect().left / 2;
+            toggle = this.container;
         
-
         toggle.addEventListener('mousedown', function (event: MouseEvent) {
             let shift: number,
                 newCoord: number,
@@ -1390,7 +1340,6 @@ class Toggle extends InterfaceElement {
 
             event.preventDefault();
             
-
             if (that.info.isVertical) {
                 shift = event.clientY - toggle.getBoundingClientRect().top;
             } else {
@@ -1406,7 +1355,7 @@ class Toggle extends InterfaceElement {
                 } else {
                     eventClient = event.clientX;
                 }
-    
+
                 newCoord = eventClient - shift - that.dragAndDropInfo.trackStart;
 
                 if (newCoord < that.dragAndDropInfo.startEdge) {
@@ -1468,9 +1417,7 @@ class ControlPanel extends InterfaceElement {
     additTextForm: HTMLElement;
     additTextInput: HTMLElement;
 
-
     info: sliderInfo;
-    
 
     constructor(info: sliderInfo) {
         super();
@@ -1509,24 +1456,18 @@ class ControlPanel extends InterfaceElement {
         let radioCommonLabel = this.createLabel("slider__radioCommonLabel", "Вид слайдера:");
         let radioHorizontalLabel = this.createLabel("slider__radioLabel", "Горизонтальный", this.isHorizontalRadio.id);
         let radioVerticalLabel = this.createLabel("slider__radioLabel", "Вертикальный", this.isVerticalRadio.id);
-        let radioRangeLabel = this.createLabel("slider__radioCommonLabel", "Тип значения:"); //viewRadioValTypeLabel
+        let radioRangeLabel = this.createLabel("slider__radioCommonLabel", "Тип значения:");
         let radioSingleValLabel = this.createLabel("slider__radioLabel", "Значение", this.isSingleValRadio.id);
         let radioRangeValLabel = this.createLabel("slider__radioLabel", "Интервал", this.isRangeValRadio.id);
 
         this.info.isVertical ? this.isVerticalRadio.setAttribute("checked", "true") :  this.isHorizontalRadio.setAttribute("checked", "true");
         this.info.isRange ? this.isRangeValRadio.setAttribute("checked", "true") : this.isSingleValRadio.setAttribute("checked", "true");
 
-
-
         this.container.append(this.showToggleLabelsCheckbox);
         this.container.append(checkboxLabel);
-
         this.container.append(this.addValTypeSelection());
-
         this.container.append(this.showScaleCheckbox);
         this.container.append(scaleChecboxLabel);
-
-        
 
         this.container.append(this.divNumInputsContainer);
         this.divNumInputsContainer.append(divInputsCommonLabel);
@@ -1546,8 +1487,6 @@ class ControlPanel extends InterfaceElement {
         if (this.info.valType === "integer" || this.info.valType === "float") {
             this.container.append(this.addAdditTextInput());
         }
-
-        
 
         this.container.append(viewRadioContainer);
         viewRadioContainer.append(radioCommonLabel);
@@ -1609,8 +1548,6 @@ class ControlPanel extends InterfaceElement {
         toggleControl.append(toggleValueField);
         toggleValueField.addEventListener("change", listener)
     }
-
-
     reloadInputs() {
         let minInpLabel = this.minInput.parentElement as HTMLElement;
         this.minInput.remove();
@@ -1624,9 +1561,7 @@ class ControlPanel extends InterfaceElement {
         this.stepInput.remove();
         this.stepInput = this.createInput("slider__input slider__input_step", "text", "", this.info.step + "");
         stepInpLabel.append(this.stepInput);
-        console.log("inputs reload");
     }
-
     addAdditTextInput(): HTMLElement {
         this.additTextForm = this.createElement("form", "slider__additTextForm", this.info.idNum) as HTMLElement;
         let label = this.createLabel("slider__additTextLabel slider__additTextLabel_common", "Добавить текст ");
@@ -1637,8 +1572,6 @@ class ControlPanel extends InterfaceElement {
         this.additTextInput = this.createInput("slider__additTextInput", "text");
         let labelSec = this.createLabel("slider__additTextLabel slider__additTextLabel_common", "/");;
         
-        
-        
         this.additTextForm.append(label);
         this.additTextForm.append(this.textBeforeRadio);
         this.additTextForm.append(textBeforeLabel);
@@ -1647,12 +1580,9 @@ class ControlPanel extends InterfaceElement {
         this.additTextForm.append(textAfterLabel);
         this.additTextForm.append(this.additTextInput);
 
-
-
         if (this.info.valType === "latin" || this.info.valType === "cyrillic") {
             this.toHideAdditTextInput(true);
         }
-
         if (this.info.additText) {
             this.info.isAdditTextAfter ? this.textAfterRadio.setAttribute("checked", "true") : this.textBeforeRadio.setAttribute("checked", "true");
         } else {
@@ -1669,10 +1599,8 @@ class ControlPanel extends InterfaceElement {
             this.additTextForm.classList.remove("hidden");
         }
     }
-
     addValTypeSelection(): HTMLElement {
         let form = this.createElement("form", "slider__valTypeForm", this.info.idNum) as HTMLElement;
-        
         this.valTypeSelector = this.createElement("select", "slider__valTypeSelect", this.info.idNum) as HTMLElement;
         this.valTypeSelector.setAttribute("form", form.id);
         this.valTypeSelector.setAttribute("name", "valTypeSelect-" + this.info.idNum);
@@ -1700,7 +1628,6 @@ class ControlPanel extends InterfaceElement {
         if (this.info.valType === "cyrillic") {
             cyrOption.setAttribute("selected", "true");
         }
-
         let label = this.createLabel("slider__selectLabel", "Тип значения:", this.valTypeSelector.id);
 
         form.append(label);
@@ -1710,7 +1637,6 @@ class ControlPanel extends InterfaceElement {
         this.valTypeSelector.append(latinOption);
         this.valTypeSelector.append(cyrOption);
 
-
         return form;
     }
     updateInfo(info: sliderInfo) {
@@ -1718,15 +1644,14 @@ class ControlPanel extends InterfaceElement {
     }
 };
 
-
-
-
+function createSlider(info: sliderInfo, parentElement: Element) {
+    let app = new Controller(new Model(info), new View(info, parentElement));
+}
 
 let containers = document.querySelectorAll(".slider-here");
 
-for (let [index, elem] of containers.entries()) {
-    createSlider({
-        idNum: index + 1,
+createSlider({
+        idNum: 1,
         minValue: 0,
         maxValue: 100,
         step: "5",
@@ -1736,23 +1661,18 @@ for (let [index, elem] of containers.entries()) {
         isVertical: false,
         smDivNum: 5,
         lDivNum: 4,
-    }, elem);
-}
+    }, containers[0]);
 
-function createSlider(info: sliderInfo,
-    parentElement: Element) {
-    let app = new Controller(new Model(info), new View(info, parentElement));
-}
 
-// let info = {
-//     idNum: 1,
-//         minValue: 0,
-//         maxValue: 100,
-//         step: 5,
-//         isRange: true,
-//         startTogVals: [25, 75],
-//         measure: "standard",
-//         isVertical: false,
-// }
-// let app = createSlider(info, containers[0]);
-// app.view.track.removeToggles();
+    createSlider({
+        idNum: 2,
+        minValue: -100,
+        maxValue: 200,
+        step: "15",
+        isRange: true,
+        togVals: [25, 125],
+        valType: "float",
+        isVertical: true,
+        smDivNum: 5,
+        lDivNum: 4,
+    }, containers[1]);

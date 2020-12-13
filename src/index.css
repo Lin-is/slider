@@ -22,19 +22,17 @@ h1 {
 .slider-here {
     min-width: 210px;
     max-width: 800px;
-    /* margin: 0px auto; */
     margin-left: 100px;
 }
 
 
 .slider__mainContainer {
     width: 100%;
-    height: 40%;
+    min-height: 40%;
     margin: 0px auto 50px;
     display: flex;
     flex-direction: row-reverse;
     align-items: center;
-    /* justify-content: space-around; */
     border-radius: 10px;
 }
 
@@ -46,11 +44,6 @@ h1 {
     flex-direction: column;
     border-radius: 10px;
     padding: 10px;
-}
-
-
-.slider__trackContainer.vertical+.slider__controlElements {
-    height: 520px;
 }
 
 .slider__check {
@@ -286,15 +279,18 @@ input:checked+.slider__additTextLabel_before {
 .slider__toggleLabel {
     position: absolute;
     text-align: center;
-    width: 40px; 
+    min-width: 40px; 
+    width: auto;
     height: 20px;
     top: -35px;
     left: -20px;
     background-color: rgb(190, 69, 79);
     color: whitesmoke;
     border-radius: 5px;
+    padding: 0px 5px;
     padding-bottom: 5px;
     margin-bottom: 5px;
+    white-space: nowrap;
 }
 
 .slider__progressBar {
@@ -335,7 +331,6 @@ input:checked+.slider__additTextLabel_before {
     align-items: center;
     display: flex;
     flex-direction: column;
-    /* justify-content: center; */
 }
 
 .slider__scaleDivision_reg {
@@ -353,7 +348,6 @@ input:checked+.slider__additTextLabel_before {
     height: 20px;
     left: -4px;
     top: -5px;
-    /* background-color: rgba(65, 105, 225, 0.2); */
 }
 .slider__scaleDivision_reg::before {
     z-index: 2;
@@ -383,16 +377,15 @@ input:checked+.slider__additTextLabel_before {
     padding: 2px 3px;
     margin-top: 30px;
     min-width: 20px;
+    white-space: nowrap;
 }
 .slider__scaleDivLabel_reg {
     display: none;
     margin-top: 0px;
     margin-bottom: 15px;
     top: -25px;
-    /* background-color: rgba(190, 69, 79, 0.7); */
     background-color: rgba(38, 38, 38, 0.4); 
     transition: display 0.1s;
-    /* color: rgb(190, 69, 79); */
 }
 
 
@@ -487,42 +480,3 @@ input:checked+.slider__additTextLabel_before {
 .purple {
     background-color: #6f7dc0;
 }
-
-/* @media (max-width: 800px) {
-    body {
-        margin: 0px auto;
-    }
-    .slider__mainContainer {
-        flex-direction: column-reverse;
-    }
-    .slider__controlElements {
-        width: 100%;
-        max-width: 400px;
-    }
-
-    .slider__scaleContainer {
-        width: 100%;
-        padding: 5px;
-    }
-}
-@media (max-width: 440px) {
-    body {
-        padding: 0px;
-        align-items: flex-start;
-    } 
-    .slider__mainContainer {
-        flex-direction: column-reverse;
-    }
-    .slider__controlElements {
-        width: 95%;
-        margin: 10px;
-    }
-    .slider__scaleContainer {
-        width: 100%;
-        padding: 5px;
-    }
-    .slider_scale {
-        width: 100%;
-    }
-
-} */
